@@ -15,6 +15,7 @@
 char quit[]="QUIT\n";
 char list[]="LIST\n";
 char message[]="MSSG";
+char message2[]="MSSG2";
 char nickname[]="NICK\n";
 char role[]="ROLE\n";
 char info[]="INFO\n";
@@ -53,7 +54,7 @@ chatting(int sockfd, int maxfdp, fd_set rset, char *argv[])
         /*************************************************************/
 
 
-        /*************** 자신의 메세지를 Server에 전송 ***************/
+        /*************** Transferir mensagem para o server ***************/
 
         // FD_SET에 stdin이 있는 지 확인
         if(FD_ISSET(0, &rset))
@@ -93,8 +94,13 @@ chatting(int sockfd, int maxfdp, fd_set rset, char *argv[])
                     write(sockfd, buf, strlen(buf));
                     continue;
                 }
+                if(strstr(buf,message2) != NULL)
+                {
+                    write(sockfd, buf, strlen(buf));
+                    continue;
+                }
 
-                // 명령어가 아닌 일반 채팅 메세지인 경우 자신의 닉네임을 포함하여
+                // No caso de uma mensagem de bate-papo geral, não um comando, inclua seu apelido
                 // Server에 전송
                 sprintf(chatData, "[%s] %s", argv[3], buf);
                 write(sockfd, chatData, strlen(chatData));

@@ -24,6 +24,7 @@ char message[]="MSSG";
 char nickname[] ="NICK\n";
 char role[]="ROLE\n";
 char user_info[]="INFO\n";
+char message2[]="MAIN";
 
 // Client List 정보
 struct List_c{
@@ -131,28 +132,72 @@ void show_client_info(int i){
         }
 }
 
+//unknown command
+
+
+
 //add username to a user
 void username(int i){
     int j;
     char* token=NULL;
+    char* aux="pedrinho13";
     char buf1[MAXLINE];
+    int contador = 0;
+    int tamanho = 0;
 
     memset(buf1,0,sizeof(buf1));
     printf("%s\n", list_c[i].username);
-    printf("%s wants to add a username\r\n",list_c[i].nick);
 
     //list_c[i].role = "USER";
-    strcpy(list_c[i].username, "pedrinho13");
+    //strcpy(list_c[i].username, aux);
 
-    printf("%s\n", list_c[i].username);
+    //printf("%s\n", list_c[i].username);
+
+    //int result = strcmp(list_c[j].username,aux);
+
+    //printf("Contador %d\n", contador);
+
+    for(j=0; j<MAX_CLIENT;j++){
+        if(strcmp(list_c[j].username,aux) == 0){   //if Return value = 0 then it indicates str1 is equal to str2.
+            contador++;
+        }
+    }
+    tamanho = strlen(list_c[i].username);
+
+    printf("Tamanho = %d\n", tamanho);
+
+    if(tamanho > 0){
+        sprintf(buf1,"%s you already have an username.\r\n",list_c[i].nick);
+        write(list_c[j].socket_num,buf1,strlen(buf1));
+    }
+
+    if(contador == 0){
+        strcpy(list_c[i].username, aux);
+        printf("%s add the username\r\n",list_c[i].nick);
+    }
+
+    if(contador > 0){
+        printf("Theres alreay a user with the username. Please retry again %s\n", aux);
+    }
+
     for(j=0; j<MAX_CLIENT;j++)
         if(j!=i && list_c[j].socket_num!=INVALID_SOCK){
-            sprintf(buf1,"%s set the username: %s\r\n",list_c[i].nick, list_c[i].username);
-            write(list_c[j].socket_num,buf1,strlen(buf1));
+                if(contador == 0){
+                    sprintf(buf1,"%s set the username: %s\r\n",list_c[i].nick, list_c[i].username);
+                    write(list_c[j].socket_num,buf1,strlen(buf1));
+                } else {
+                    sprintf(buf1,"%s tried to change is username.\r\n",list_c[i].nick);
+                    write(list_c[j].socket_num,buf1,strlen(buf1));
+                }
         }
         else if(j==i && list_c[j].socket_num!=INVALID_SOCK){
-            sprintf(buf1,"%s, this is your new username: %s\r\n",list_c[i].nick, list_c[i].username);
-            write(list_c[j].socket_num,buf1,strlen(buf1));
+            if(contador == 0){
+                    sprintf(buf1,"%s, this is your new username: %s\r\n",list_c[i].nick, list_c[i].username);
+                    write(list_c[j].socket_num,buf1,strlen(buf1));
+            } else {
+                    sprintf(buf1,"%s your username is already being used.\r\n",list_c[i].nick);
+                    write(list_c[j].socket_num,buf1,strlen(buf1));
+            }
         }
 }
 
@@ -184,9 +229,13 @@ void change_nickname(int i){   //change the nickname of the user with index i
     //list_c[i].nick = aux2;
     
     printf("%s is changed is nickname to .... %s\r\n",list_c[i].nick,aux, list_c[i].ip);
+
     for(j=0; j<MAX_CLIENT;j++)
+
         if(j!=i && list_c[j].socket_num!=INVALID_SOCK){
+
             sprintf(buf1,"%s Mudou o seu nickname.\r\n",list_c[i].nick);
+
             write(list_c[j].socket_num,buf1,strlen(buf1));
         }
 
@@ -227,6 +276,7 @@ int message_func(char* chatData,int i){
     int j,message_sock;
     char* token=NULL;
     char buf1[MAXLINE];
+    char* aux = NULL;
 
     memset(buf1,0,sizeof(buf1));
     token=strtok(chatData, " ");
@@ -254,6 +304,78 @@ int message_func(char* chatData,int i){
         write(message_sock, buf1, strlen(buf1));
         return 0;
     }
+}
+//[/message [Client][message]]
+//quero fazer [/nick [nickname]]
+
+int message2_func(char* chatData,int i){
+    int j,message_sock;
+    char* token=NULL;
+    char buf1[MAXLINE];
+    char* aux = NULL;
+    int contador = 0;
+    int indice = 1;
+    int tamanho = 0;
+    char array[MAXLINE];
+
+    memset(buf1,0,sizeof(buf1));
+    token=strtok(chatData, " ");
+    //array[0] = token;
+    char * end;
+
+    tamanho = strlen(list_c[i].username);
+
+    printf("Tamanho %d\n", tamanho);
+
+    if(tamanho > 0){
+        printf("Já tem um nickname atribuido, vai alterar o mesmo %s", list_c[i].nick);
+    } else {
+        printf("Vai inserir um nickaname %s", list_c[i].nick);
+    }
+   
+    /* walk through other tokens */
+    while( token != NULL ) {
+      contador++;
+      printf( " %s\n", token );
+      printf("%d\n", contador);
+      indice++;
+
+      if(contador == 3){
+          strcpy(list_c[i].username,token);
+      }
+    
+      token = strtok(NULL, " ");
+   }
+
+   printf("%s", list_c[i].username);
+
+   for(j=0; j<MAX_CLIENT;j++)
+
+        if(j!=i && list_c[j].socket_num!=INVALID_SOCK){
+
+            sprintf(buf1,"%s Mudou o seu nickname para %s\r\n",list_c[i].nick, list_c[i].username);
+
+            write(list_c[j].socket_num,buf1,strlen(buf1));
+        } else if(j==i && list_c[j].socket_num!=INVALID_SOCK){
+
+            sprintf(buf1,"%s Nome atribuido com sucesso. %s\r\n",list_c[i].nick, list_c[i].username);
+
+            write(list_c[j].socket_num,buf1,strlen(buf1));
+        }
+
+
+
+    /*if(!strcmp(token, message)){ //se o token inicial for diferente de MSSG
+        token=strtok(NULL," ");
+        for(j=0;j<MAX_CLIENT;j++)
+            if(!strcmp(list_c[j].nick, token))
+                message_sock=list_c[j].socket_num;
+        token=strtok(NULL, "\n");
+        memset(buf1, 0, sizeof(buf1));
+        sprintf(buf1, "[message from %s] %s\r\n", list_c[i].nick, token);
+        write(message_sock, buf1, strlen(buf1));
+        return 0;
+    }*/
 }
 
 void main(int argc, char *argv[])
@@ -402,6 +524,10 @@ void main(int argc, char *argv[])
                     // 1:1 메세지 보내기 [/message [Client][message]]
                     if(strstr(chatData, message) != NULL){
                         if(message_func(chatData, i) == 0) continue;
+                        else;
+                    }
+                    if(strstr(chatData, message2) != NULL){
+                        if(message2_func(chatData, i) == 0) continue;
                         else;
                     }
                 }
