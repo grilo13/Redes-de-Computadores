@@ -312,24 +312,42 @@ int message2_func(char* chatData,int i){
     int j,message_sock;
     char* token=NULL;
     char buf1[MAXLINE];
-    char* aux = NULL;
+    char* aux = NULL;  //dar a auxiliar o valor do nickname existente, para puder fazer a resposta do servidor usando o nome antigo
+    char* aux2 = NULL;
     int contador = 0;
     int indice = 1;
     int tamanho = 0;
     char array[MAXLINE];
+    int decisao = 0;  //usado para ver se já existe o utilizador já tem um nickname anterior, e quer mudar para outro
 
     memset(buf1,0,sizeof(buf1));
     token=strtok(chatData, " ");
-    //array[0] = token;
     char * end;
 
     tamanho = strlen(list_c[i].username);
 
     printf("Tamanho %d\n", tamanho);
 
+    aux = list_c[i].username; //atribuir a aux o valor do username
+
+    for(j=0; j<MAX_CLIENT;j++){
+        if((strcmp(list_c[j].username, list_c[i].username) == 0)){ 
+            printf("J-> %s",list_c[j].username );
+            printf("I-> %s",list_c[i].username );
+        }
+    }
+
+
     if(tamanho > 0){
+
+        decisao = 1;
+
         printf("Já tem um nickname atribuido, vai alterar o mesmo %s", list_c[i].nick);
+
     } else {
+
+        decisao = 2;
+
         printf("Vai inserir um nickaname %s", list_c[i].nick);
     }
    
@@ -346,14 +364,16 @@ int message2_func(char* chatData,int i){
     
       token = strtok(NULL, " ");
    }
-
    printf("%s", list_c[i].username);
 
-   for(j=0; j<MAX_CLIENT;j++)
+   printf("AUX -> %s\n", aux);
+
+   if(decisao == 2){   //quando o utilizador está a criar o nickname pela primeira vez
+        for(j=0; j<MAX_CLIENT;j++)
 
         if(j!=i && list_c[j].socket_num!=INVALID_SOCK){
 
-            sprintf(buf1,"%s Mudou o seu nickname para %s\r\n",list_c[i].nick, list_c[i].username);
+            sprintf(buf1,"%s Server -> Novo utilizador %s\r\n",list_c[i].nick, list_c[i].username);
 
             write(list_c[j].socket_num,buf1,strlen(buf1));
         } else if(j==i && list_c[j].socket_num!=INVALID_SOCK){
@@ -362,20 +382,22 @@ int message2_func(char* chatData,int i){
 
             write(list_c[j].socket_num,buf1,strlen(buf1));
         }
+   } else if(decisao == 1){
 
+       for(j=0; j<MAX_CLIENT;j++)
 
+            if(j!=i && list_c[j].socket_num!=INVALID_SOCK){
 
-    /*if(!strcmp(token, message)){ //se o token inicial for diferente de MSSG
-        token=strtok(NULL," ");
-        for(j=0;j<MAX_CLIENT;j++)
-            if(!strcmp(list_c[j].nick, token))
-                message_sock=list_c[j].socket_num;
-        token=strtok(NULL, "\n");
-        memset(buf1, 0, sizeof(buf1));
-        sprintf(buf1, "[message from %s] %s\r\n", list_c[i].nick, token);
-        write(message_sock, buf1, strlen(buf1));
-        return 0;
-    }*/
+                sprintf(buf1,"%s mudou o seu nickname para %s\r\n",/*list_c[i].nick*/aux, list_c[i].username);
+
+                write(list_c[j].socket_num,buf1,strlen(buf1));
+            } else if(j==i && list_c[j].socket_num!=INVALID_SOCK){
+
+                sprintf(buf1,"%s alterou o seu nome com sucesso para %s\r\n",/*list_c[i].nick*/aux, list_c[i].username);
+
+                write(list_c[j].socket_num,buf1,strlen(buf1));
+            }
+   }
 }
 
 void main(int argc, char *argv[])
