@@ -9,12 +9,14 @@
 #include <sys/select.h>
 #include <arpa/inet.h>
 
-#define CHATDATA 1024
+#define CHATDATA 512
 
 // Command
 char quit[]="QUIT\n";
 char list[]="LIST\n";
-char message[]="MSSG";
+char message[]="MSSG ";
+char nick[]="NICK ";
+
 
 void
 chatting(int sockfd, int maxfdp, fd_set rset, char *argv[])
@@ -24,47 +26,55 @@ chatting(int sockfd, int maxfdp, fd_set rset, char *argv[])
     int n;						// Length of buffer for using read()
 
     while(1){
-        FD_ZERO(&rset);			// fd_set 변수(rset) 초기화
-        FD_SET(0,&rset);		// Stdin 그룹화
-        FD_SET(sockfd, &rset);	// Socket 그룹화
+        FD_ZERO(&rset);			// fd_set Variável de inicialização (rset)
+        FD_SET(0,&rset);		// Stdin Agrupamento
+        FD_SET(sockfd, &rset);	// Socket Agrupamento
 
-        // 파일디스크립터 변화 확인
+        // Verificação de mudança do descritor de arquivo
         if(select(maxfdp, &rset, (fd_set *)0, (fd_set *)0, (struct timeval *)0) <0) {
             perror("select");
             exit(1);
         }
 
-        /************** 다른 클라이언트의 메세지 출력 ***************/
+        /************** Imprimir mensagens de outros clientes ***************/
 
-        // FD_SET에 socket이 있는 지 확인
+        // Verificar se há um socket em FD_SET
         if(FD_ISSET(sockfd,&rset))
         {
-            memset(chatData, 0, sizeof(chatData));	// chatData 초기화
-            // Socket 파일 디스크립터에서 채팅 메세지를 읽어온다.
+            memset(chatData, 0, sizeof(chatData));	// Inicializar chatData
+            
+            // Ler as mensagens de bate-papo do descritor de arquivo Socket.
             if((n = read(sockfd, chatData, sizeof(chatData))) > 0)
             {
-                // 읽어온 메세지를 클라이언트 화면에 출력한다.
+                // A mensagem lida é exibida na tela do cliente.
                 write(1, chatData, n);
             }
         }
         /*************************************************************/
 
 
-        /*************** 자신의 메세지를 Server에 전송 ***************/
+        /*************** Enviar sua própria mensagem para o servidor ***************/
 
-        // FD_SET에 stdin이 있는 지 확인
         if(FD_ISSET(0, &rset))
         {
-            memset(buf, 0, sizeof(buf));	//	buf 초기화
+            memset(buf, 0, sizeof(buf));	//	inicializar buf 
 
             if((n = read(0, buf, sizeof(buf))) > 0 )
-            {
-                // 명령어 입력 확인, 명령어인 경우 명령어를 sockfd에 쓴다.
+            {     
+
+                // Verifique a entrada do comando, se for um comando, gravar o comando em sockfd.
+
+                if(strstr(buf, nick) != NULL)
+                {
+                    write(sockfd, buf, strlen(buf));
+                    continue;
+                }
                 if(!strcmp(buf, quit))
                 {
                     write(sockfd, buf, strlen(buf));
                     break;
                 }
+
                 if(!strcmp(buf,list))
                 {
                     write(sockfd, buf, strlen(buf));
@@ -75,14 +85,17 @@ chatting(int sockfd, int maxfdp, fd_set rset, char *argv[])
                     write(sockfd, buf, strlen(buf));
                     continue;
                 }
-
-                // 명령어가 아닌 일반 채팅 메세지인 경우 자신의 닉네임을 포함하여
-                // Server에 전송
+                
+                /*
+                // No caso de uma mensagem de bate-papo geral, não um comando
+                //Transferir para o servidor
                 sprintf(chatData, "[%s] %s", argv[3], buf);
                 write(sockfd, chatData, strlen(chatData));
+                */
+                
             }
         }
-        /*************************************************************/
+
     }
 }
 
@@ -94,14 +107,15 @@ main(int argc,char *argv[])
     int maxfdp;						// Max file descriptor
     fd_set rset;
 
-    // 파라미터 입력이 정확하지 않은 경우 에러 메시지 출력
-    if(argc < 4)
+    // Saída de mensagem de erro quando a entrada do parâmetro está incorreta
+    if(argc < 3)
     {
-        printf("usage:%s [ip_address] [port_number] [nickname]\n",argv[0]);
+        //printf("usage:%s [ip_address] [port_number] [nickname]\n",argv[0]);
+        printf("usage:%s [ip_address] [port_number]\n",argv[0]);
         exit(0);
     }
 
-    // IPv4, TCP/IP 소켓 생성
+    // IPv4, criação de socket TCP / IP
     if( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0 ){
         perror("socket");
         exit(1);
@@ -112,18 +126,28 @@ main(int argc,char *argv[])
     servaddr.sin_family=AF_INET;					// IPv4
     servaddr.sin_port=htons(atoi(argv[2]));			// 입력받은 Port number
 
-    // Server에 접속 요청 실패 시 에러 메세지 출력후 종료
+    // Quando a solicitação de conexão com o servidor falha, uma mensagem de erro é exibida e, em seguida, encerrada.
     if(connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) == -1)
     {
         perror("connect");
         exit(0);
     }
 
-    // Server에 Client Nickname 전송
-    write(sockfd, argv[3], strlen(argv[3]));
-    maxfdp=sockfd + 1;	// maxfdp 증가
 
-    // Chatting function 실행
+    /*
+    char *default_nick = "Anónimo";
+
+   
+    // Enviar nickname do cliente para o servidor
+    write(sockfd, default_nick, strlen(default_nick));
+
+    maxfdp=sockfd + 1;	// aumentar maxfdp
+   
+    */
+
+    maxfdp=sockfd + 1;
+
+    // Execução da função de bate-papo
     chatting(sockfd, maxfdp, rset, argv);
 
     // Close socket
