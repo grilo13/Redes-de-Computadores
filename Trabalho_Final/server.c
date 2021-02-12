@@ -21,16 +21,16 @@
 //char greeting[]="Bem-vindo à sala.\n";
 char ERROR[]= "Erro.\n";
 char quit[]="QUIT\n";
-char list[]="LIST\n";
+char whos[]="WHOS\n";
 char message[]="MSSG";
 char nickname[]="NICK";
 
-// Client List 정보
+// Client List
 struct List_c{
     int socket_num;         // Socket number
-    char nick[NICKNAME];    // Client nickname 정보
-    char ip[40];            // Client IP 정보
-    int port;               // Server port 정보
+    char nick[NICKNAME];    // Client nickname 
+    char ip[40];            // Client IP 
+    int port;               // Server port 
 }list_c[MAX_CLIENT];
 
 // Armazenamento de índice de clientes conectados
@@ -92,12 +92,35 @@ void nick_func(char* chatData, int i){
     if(strcmp(token, nickname)==0){
       token = strtok(NULL, end);
       token[strcspn(token, "\n")] = 0;
-        for(int j=0;j<MAX_CLIENT;j++){
-            if(list_c[j].socket_num!=INVALID_SOCK){
-                set_nick(token, j);
-                write(list_c[i].socket_num,buf1,strlen(buf1)); 
-            }
+        if(strlen(token) == 0){
+            puts("RPLY 002 - Erro: Falta introdução do nome.\n");
+            sprintf(buf1,"RPLY 002 - Erro: Falta introdução do nome.\n");
+            write(list_c[i].socket_num,buf1,strlen(buf1));
+        }else{
+            for(int j=0;j<MAX_CLIENT;j++){
+                if(list_c[j].socket_num!=INVALID_SOCK){
+                    if(strlen(token) > NICKNAME){
+                        puts("RPLY 003 - Erro: Nome pedido não válido. (Excede nº máximo de carateres permitido ou utiliza carateres inválidos\n");
+                        sprintf(buf1,"RPLY 003 - Erro: Nome pedido não válido. (Excede nº máximo de carateres permitido ou utiliza carateres inválidos\n");
+                        write(list_c[j].socket_num,buf1,strlen(buf1));
+                        break;
+                    }else{
+                        set_nick(token, j);
+                        write(list_c[j].socket_num,buf1,strlen(buf1));
+                        puts("RPLY 001 - Nome atribuído com sucesso\n");
+                        sprintf(buf1,"RPLY 001 - Nome atribuído com sucesso\n");
+                        write(list_c[j].socket_num,buf1,strlen(buf1));
+                        printf("%s has been connected from %s\n", list_c[j].nick, list_c[j].ip);
+
+                        break;
+                    }
+                }
+            }   
         }
+    }else{
+        puts("RPLY 002 - Erro: Falta introdução do nome.\n"); 
+        sprintf(buf1,"RPLY 002 - Erro: Falta introdução do nome.\n");
+        write(list_c[i].socket_num,buf1,strlen(buf1));
     }
 
 }
@@ -136,7 +159,7 @@ void quit_func(int i){
 }
 
 // list
-void list_func(int i){
+void whos_func(int i){
     int j,cnt=0;
     char buf1[MAXLINE];
 
@@ -145,7 +168,7 @@ void list_func(int i){
     for(j=0; j<MAX_CLIENT;j++)
         if(list_c[j].socket_num!=INVALID_SOCK)
             cnt++;
-    sprintf(buf1,"[Visitantes atuais : %d]\r\n",cnt);
+    sprintf(buf1,"[Visitantes atuais do canal : %d]\r\n",cnt);
     write(list_c[i].socket_num,buf1,strlen(buf1));
 
     for(j=0; j<MAX_CLIENT;j++){
@@ -243,9 +266,9 @@ void main(int argc, char *argv[])
 
     int save_port = (int) ntohs(servaddr.sin_port);
 
-    printf("[Server address %s : %d] \n", buf1, ntohs(servaddr.sin_port));
+    printf("[Server address %s : %d]\n", buf1, ntohs(servaddr.sin_port));
 
-    char *message = "Session started! \n set your nickname with command NICK first!";
+    char *message = "Session started! \n set your nickname with command NICK first!\n";
 
 
     for ( ; ; )
@@ -290,18 +313,14 @@ void main(int argc, char *argv[])
                 //index = pushClient(newSockfd, buf1 , buf2, save_port);
                 index = pushClient(newSockfd, buf2, save_port);
 
-                message = "Session started! \n set your nickname with command NICK ! \n";
+                message = "Session started! \n Set your nickname with command NICK ! \n";
 
                 if( send(newSockfd, message, strlen(message), 0) != strlen(message) ) {
                     
                     perror("send failed");
                 }
               
-                puts("...welcome message sent to NEW CLIENT");
-
-          /*
-                // Insirir sock_num, nick, ip, port_num do cliente
-                printf("%s has been connected from %s\n", list_c[index].nick, list_c[index].ip );*/
+                puts("...welcome message sent to NEW CLIENT\n");
                 
 
                 if(index < 0){
@@ -310,10 +329,11 @@ void main(int argc, char *argv[])
                 }else{
 
                     //write(newSockfd, greeting, strlen(greeting));
-                    for(i=0; i<MAX_CLIENT;i++) //avisa quem está conectado no canal ativo
+                    for(i=0; i<MAX_CLIENT;i++){ //avisa quem está conectado no canal ativo
                         if(i!=index && list_c[i].socket_num!=INVALID_SOCK){
                             constr_func(i, index);     
                         }
+                    }
                 }
             }
         }
@@ -323,69 +343,38 @@ void main(int argc, char *argv[])
                 memset(chatData, 0, sizeof(chatData));
                 if((n=read(list_c[i].socket_num,chatData, sizeof (chatData)))>0){
 
-                
-                        // Enviar mensagem de bate-papo padrão
-                        for(j=0; j<MAX_CLIENT;j++){   // send chatting letters
-                            if(list_c[i].socket_num !=INVALID_SOCK)
-                                if(j!=i)
-                                    write(list_c[j].socket_num, chatData, sizeof(chatData));
-                        }
-                    
-                        if(strstr(chatData, nickname) != NULL){
-                            nick_func(chatData, i);
-                            continue;
-                        }
-                    
-                        // Encerrando a conexão [/ quit]
-                        if(!strcmp(chatData, quit)){   // disconnect from the client "i"
-                            quit_func(i);
-                            popClient(list_c[i].socket_num);
-                            continue;
-                        }
-                        // Client Mostrar lista [/ list]
-                        if(!strcmp(chatData,list)){ //print the list of clients
-                            list_func(i);
-                            continue;
-                        }
-                        // Enviar mensagem 1:1 [/ mensagem [Cliente] [mensagem]]
-                        if(strstr(chatData, message) != NULL){
-                            if(message_func(chatData, i) == 0) continue;
-                            else;
-                        }
-
-
-
-                } 
-                  
-                   /*
-
                     // Enviar mensagem de bate-papo padrão
                     for(j=0; j<MAX_CLIENT;j++){   // send chatting letters
                         if(list_c[i].socket_num !=INVALID_SOCK)
                             if(j!=i)
                                 write(list_c[j].socket_num, chatData, sizeof(chatData));
                     }
-
+                    
+                    if(strstr(chatData, nickname) != NULL){
+                        nick_func(chatData, i);
+                        continue;
+                    }
+                    
                     // Encerrando a conexão [/ quit]
                     if(!strcmp(chatData, quit)){   // disconnect from the client "i"
                         quit_func(i);
                         popClient(list_c[i].socket_num);
                         continue;
                     }
+
                     // Client Mostrar lista [/ list]
-                    if(!strcmp(chatData,list)){ //print the list of clients
-                        list_func(i);
+                    if(!strcmp(chatData,whos)){ //print the list of clients
+                        whos_func(i);
                         continue;
                     }
+
                     // Enviar mensagem 1:1 [/ mensagem [Cliente] [mensagem]]
                     if(strstr(chatData, message) != NULL){
                         if(message_func(chatData, i) == 0) continue;
                         else;
                     }
-                    */
-
+                } 
             }
         }
     }
-
 }
