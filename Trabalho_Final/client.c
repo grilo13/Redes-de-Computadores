@@ -14,8 +14,8 @@
 // Command
 char quit[]="QUIT\n";
 char list[]="LIST\n";
-char message[]="MSSG ";
-char nick[]="NICK ";
+char message[]="MSSG";
+char nickname[]="NICK";
 
 
 void
@@ -64,7 +64,7 @@ chatting(int sockfd, int maxfdp, fd_set rset, char *argv[])
 
                 // Verifique a entrada do comando, se for um comando, gravar o comando em sockfd.
 
-                if(strstr(buf, nick) != NULL)
+                if(strstr(buf, nickname) != NULL)
                 {
                     write(sockfd, buf, strlen(buf));
                     continue;
@@ -92,6 +92,7 @@ chatting(int sockfd, int maxfdp, fd_set rset, char *argv[])
                 sprintf(chatData, "[%s] %s", argv[3], buf);
                 write(sockfd, chatData, strlen(chatData));
                 */
+                
                 
             }
         }
