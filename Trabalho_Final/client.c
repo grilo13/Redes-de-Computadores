@@ -13,7 +13,7 @@
 
 // Command
 char quit[]="QUIT\n";
-char list[]="LIST\n";
+char whos[]="WHOS\n";
 char message[]="MSSG";
 char nickname[]="NICK";
 
@@ -75,7 +75,7 @@ chatting(int sockfd, int maxfdp, fd_set rset, char *argv[])
                     break;
                 }
 
-                if(!strcmp(buf,list))
+                if(!strcmp(buf,whos))
                 {
                     write(sockfd, buf, strlen(buf));
                     continue;
@@ -122,10 +122,10 @@ main(int argc,char *argv[])
         exit(1);
     };
 
-    memset(&servaddr, 0, sizeof(servaddr));			// servaddr 초기화
-    servaddr.sin_addr.s_addr = inet_addr(argv[1]);	// 입력받은 IP Address
-    servaddr.sin_family=AF_INET;					// IPv4
-    servaddr.sin_port=htons(atoi(argv[2]));			// 입력받은 Port number
+    memset(&servaddr, 0, sizeof(servaddr));			
+    servaddr.sin_addr.s_addr = inet_addr(argv[1]);	
+    servaddr.sin_family=AF_INET;					
+    servaddr.sin_port=htons(atoi(argv[2]));		
 
     // Quando a solicitação de conexão com o servidor falha, uma mensagem de erro é exibida e, em seguida, encerrada.
     if(connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) == -1)
@@ -134,17 +134,6 @@ main(int argc,char *argv[])
         exit(0);
     }
 
-
-    /*
-    char *default_nick = "Anónimo";
-
-   
-    // Enviar nickname do cliente para o servidor
-    write(sockfd, default_nick, strlen(default_nick));
-
-    maxfdp=sockfd + 1;	// aumentar maxfdp
-   
-    */
 
     maxfdp=sockfd + 1;
 
