@@ -11,7 +11,7 @@
 #include<sys/select.h>
 
 #define MAXLINE 100
-#define MAX_CLIENT 1000
+#define MAX_CLIENT 10
 #define CHATDATA 512
 #define INVALID_SOCK -1
 #define ROLESIZE 10
@@ -22,15 +22,18 @@ char quit[]="QUIT\n";
 char list[]="LIST\n";
 char message[]="MSSG";
 char nickname[] ="NICK\n";
+char kick[]="KICK\n";
 char role[]="ROLE\n";
 char user_info[]="INFO\n";
 char message2[]="MAIN";
+char exists[]="EXISTS\n";
 
 // Client List 정보
 struct List_c{
     int socket_num;         // Socket number
     char nick[CHATDATA];    // Client nickname 
-    char username[CHATDATA];
+    char username[CHATDATA];   //for the newest name
+    char old_username[CHATDATA]; //to store the value of the last name
     char ip[40];            // Client IP 
     char role[ROLESIZE];    // role of the user
     int port;               // Server port 
@@ -102,20 +105,78 @@ void give_role(int i){
     char* token=NULL;
     char buf1[MAXLINE];
 
+    char* aux = "OPERADOR";
+    //strcpy(aux,"OPERADOR");
+
     memset(buf1,0,sizeof(buf1));
     printf("%s\n", list_c[i].role);
     printf("%s wants to add a role\r\n",list_c[i].nick);
 
-    //list_c[i].role = "USER";
-    strcpy(list_c[i].role, "USER");
+    if(strcmp(list_c[i].role,aux) == 0){
+        printf("%s pode dar role operador a outro utilizador.\n", list_c[i].nick);
+    } else {
+        printf("%s não tem permissões para tal.\n", list_c[i].nick);
+    }
 
-    printf("%s\n", list_c[i].role);
+    int id_user = see_exists(i);
+
+    printf("ID USER %d", id_user);
+
+    strcpy(list_c[id_user].role, aux);
+
+    printf("%s\n", list_c[id_user].role);
     for(j=0; j<MAX_CLIENT;j++)
         if(j!=i && list_c[j].socket_num!=INVALID_SOCK){
             sprintf(buf1,"%s is now a %s\r\n",list_c[i].nick, list_c[i].role);
             write(list_c[j].socket_num,buf1,strlen(buf1));
         }
 }
+
+/*void kick(char* chatData,int i){
+    char* token;
+    char buf1[MAXLINE];
+    char* end = " ";
+
+    memset(buf1,0,sizeof(buf1));
+
+    
+    token = strtok(chatData, end);
+
+    if(strcmp(token, nickname)==0){
+      token = strtok(NULL, end);
+      token[strcspn(token, "\n")] = 0;
+        if(strlen(token) == 0){
+            puts("RPLY 002 - Erro: Falta introdução do nome.\n");
+            sprintf(buf1,"RPLY 002 - Erro: Falta introdução do nome.\n");
+            write(list_c[i].socket_num,buf1,strlen(buf1));
+        }else{
+            for(int j=0;j<MAX_CLIENT;j++){
+                if(list_c[j].socket_num!=INVALID_SOCK){
+                    if(strlen(token) > NICKNAME){
+                        puts("RPLY 003 - Erro: Nome pedido não válido. (Excede nº máximo de carateres permitido ou utiliza carateres inválidos\n");
+                        sprintf(buf1,"RPLY 003 - Erro: Nome pedido não válido. (Excede nº máximo de carateres permitido ou utiliza carateres inválidos\n");
+                        write(list_c[j].socket_num,buf1,strlen(buf1));
+                        break;
+                    }else{
+                        set_nick(token, j);
+                        write(list_c[j].socket_num,buf1,strlen(buf1));
+                        puts("RPLY 001 - Nome atribuído com sucesso\n");
+                        sprintf(buf1,"RPLY 001 - Nome atribuído com sucesso\n");
+                        write(list_c[j].socket_num,buf1,strlen(buf1));
+                        printf("%s has been connected from %s\n", list_c[j].nick, list_c[j].ip);
+
+                        break;
+                    }
+                }
+            }   
+        }
+    }else{
+        puts("RPLY 002 - Erro: Falta introdução do nome.\n"); 
+        sprintf(buf1,"RPLY 002 - Erro: Falta introdução do nome.\n");
+        write(list_c[i].socket_num,buf1,strlen(buf1));
+    }
+
+}*/
 
 //show the info of the users
 void show_client_info(int i){
@@ -132,144 +193,118 @@ void show_client_info(int i){
         }
 }
 
-//unknown command
 
-
-
-//add username to a user
-void username(int i){
-    int j;
-    char* token=NULL;
-    char* aux="pedrinho13";
+//see if exists the name, then return the index of the socket user
+int see_exists(int i){
+    int j,cnt=0;
     char buf1[MAXLINE];
-    int contador = 0;
-    int tamanho = 0;
+
+    int id;
+
+    char* aux="Pedrinho\n";
 
     memset(buf1,0,sizeof(buf1));
-    printf("%s\n", list_c[i].username);
+        //if(list_c[j].socket_num!=INVALID_SOCK)
+        /*if(strcmp(list_c[j].username,aux) == 0){
+            cnt++;
+        }*/
 
-    //list_c[i].role = "USER";
-    //strcpy(list_c[i].username, aux);
-
-    //printf("%s\n", list_c[i].username);
-
-    //int result = strcmp(list_c[j].username,aux);
-
-    //printf("Contador %d\n", contador);
+    sprintf(buf1,"[Visitantes atuais do canal : %d]\r\n",cnt);
+    write(list_c[i].socket_num,buf1,strlen(buf1));
 
     for(j=0; j<MAX_CLIENT;j++){
-        if(strcmp(list_c[j].username,aux) == 0){   //if Return value = 0 then it indicates str1 is equal to str2.
-            contador++;
-        }
-    }
-    tamanho = strlen(list_c[i].username);
-
-    printf("Tamanho = %d\n", tamanho);
-
-    if(tamanho > 0){
-        sprintf(buf1,"%s you already have an username.\r\n",list_c[i].nick);
-        write(list_c[j].socket_num,buf1,strlen(buf1));
-    }
-
-    if(contador == 0){
-        strcpy(list_c[i].username, aux);
-        printf("%s add the username\r\n",list_c[i].nick);
-    }
-
-    if(contador > 0){
-        printf("Theres alreay a user with the username. Please retry again %s\n", aux);
-    }
-
-    for(j=0; j<MAX_CLIENT;j++)
-        if(j!=i && list_c[j].socket_num!=INVALID_SOCK){
-                if(contador == 0){
-                    sprintf(buf1,"%s set the username: %s\r\n",list_c[i].nick, list_c[i].username);
-                    write(list_c[j].socket_num,buf1,strlen(buf1));
-                } else {
-                    sprintf(buf1,"%s tried to change is username.\r\n",list_c[i].nick);
-                    write(list_c[j].socket_num,buf1,strlen(buf1));
-                }
-        }
-        else if(j==i && list_c[j].socket_num!=INVALID_SOCK){
-            if(contador == 0){
-                    sprintf(buf1,"%s, this is your new username: %s\r\n",list_c[i].nick, list_c[i].username);
-                    write(list_c[j].socket_num,buf1,strlen(buf1));
-            } else {
-                    sprintf(buf1,"%s your username is already being used.\r\n",list_c[i].nick);
-                    write(list_c[j].socket_num,buf1,strlen(buf1));
+        if(list_c[j].socket_num!=INVALID_SOCK){
+            if(strcmp(list_c[j].username,aux) == 0){
+                id = list_c[j].socket_num;
+                sprintf(buf1,"ID: %d e Nome utilizador: %s\n", list_c[j].socket_num,list_c[j].username);
+                write(list_c[i].socket_num,buf1,strlen(buf1));
             }
         }
-}
+    }
 
-//change_nickname
-void change_nickname(int i){   //change the nickname of the user with index i
-    int j;
-    char* token=NULL;
-    char* aux = NULL;
-    char* aux2 = NULL;
-    char buf1[MAXLINE];
-    char buf2[MAXLINE];
+    return id;
+    /*if(strcmp(list_c[i].username,aux) == 0){
+        memset(buf1,0,sizeof(buf1));
 
-    memset(buf1,0,sizeof(buf1));
-    memset(buf2,0,sizeof(buf2));
+        for(j=0; j<MAX_CLIENT;j++)
+        if(list_c[j].socket_num!=INVALID_SOCK){
+                cnt++;
+            }
+        sprintf(buf1,"Existe um username com esse nome %s -> %d]\r\n",list_c[i].username,cnt);
+        write(list_c[i].socket_num,buf1,strlen(buf1));
 
-    aux = list_c[i].nick;
-    //printf("%s\n", aux);
-    //printf("%s\n",list_c[i].nick);
-    //CHANGE_STR( &aux, "pedro" );
-    //CHANGE_STR(&list_c[i].nick, "joao");
-
-    aux = list_c[i].nick;
-    //aux2 = list_c[i].role;
-
-    printf("User has nick %s and role %s", aux,aux2);
-    //printf("%s", aux);
-    //printf("%s", list_c[i].nick);
-
-    //list_c[i].nick = aux2;
-    
-    printf("%s is changed is nickname to .... %s\r\n",list_c[i].nick,aux, list_c[i].ip);
-
-    for(j=0; j<MAX_CLIENT;j++)
-
-        if(j!=i && list_c[j].socket_num!=INVALID_SOCK){
-
-            sprintf(buf1,"%s Mudou o seu nickname.\r\n",list_c[i].nick);
-
-            write(list_c[j].socket_num,buf1,strlen(buf1));
+        for(j=0; j<MAX_CLIENT;j++){
+            if(list_c[j].socket_num!=INVALID_SOCK){
+                sprintf(buf1,"[%s from %s: %d]\r\n",list_c[j].nick,list_c[j].ip,list_c[j].port);
+                write(list_c[i].socket_num,buf1,strlen(buf1));
+            }
         }
 
+    } else {
+        sprintf(buf1,"Não tem permissões para o fazer. %s\r\n", list_c[i].nick);
+        write(list_c[i].socket_num,buf1,strlen(buf1));
+        printf("%s não tem permissões para tal.\n", list_c[i].nick);
+    }  */
 }
+
 
 //Function to change the value of a string (used in changing the nickname)
 void CHANGE_STR(char **old_str, char *new_str)   {
     *old_str = new_str;    
 }
    
-// list
+// list of all the users in the channel
 void list_func(int i){
     int j,cnt=0;
     char buf1[MAXLINE];
-    char buf2[MAXLINE];
 
-    memset(buf2,0,sizeof(buf2));
-    memset(buf1,0,sizeof(buf1));
-    for(j=0; j<MAX_CLIENT;j++)
-        if(list_c[j].socket_num!=INVALID_SOCK)cnt++;
-    sprintf(buf1,"[Visitante atual : %d]\r\n",cnt);
-    write(list_c[i].socket_num,buf1,strlen(buf1));
-    printf("%s asked for the list of users.\n", list_c[i].nick);
-    for(j=0; j<MAX_CLIENT;j++)
-        if(j == i &&  list_c[j].socket_num!=INVALID_SOCK){
-            sprintf(buf1,"[%s from %s: %d]\r\n",list_c[j].nick,list_c[j].ip,list_c[j].port);
-            write(list_c[i].socket_num,buf1,strlen(buf1));
-            
+    char* aux = "OPERADOR";
+
+    if(strcmp(list_c[i].role,aux) == 0){
+        memset(buf1,0,sizeof(buf1));
+
+        for(j=0; j<MAX_CLIENT;j++)
+            if(list_c[j].socket_num!=INVALID_SOCK){
+                cnt++;
+            }
+        sprintf(buf1,"[Visitantes atuais do canal : %d]\r\n",cnt);
+        write(list_c[i].socket_num,buf1,strlen(buf1));
+
+        for(j=0; j<MAX_CLIENT;j++){
+            if(list_c[j].socket_num!=INVALID_SOCK){
+                sprintf(buf1,"[%s from %s: %d]\r\n",list_c[j].nick,list_c[j].ip,list_c[j].port);
+                write(list_c[i].socket_num,buf1,strlen(buf1));
+            }
         }
 
-        /*if(j!=i && list_c[j].socket_num!=INVALID_SOCK){
-            sprintf(buf2,"[%s asked for a list of the users %s: %d]\r\n",list_c[i].nick,list_c[j].ip,list_c[j].port);
-            write(list_c[j].socket_num,buf2,strlen(buf2));
-        }*/
+    } else {
+        sprintf(buf1,"Não tem permissões para o fazer. %s\r\n", list_c[i].nick);
+        write(list_c[i].socket_num,buf1,strlen(buf1));
+        printf("%s não tem permissões para tal.\n", list_c[i].nick);
+    }   
+}
+
+void kick_user(int i){
+    int j,cnt=0;
+    char buf1[MAXLINE];
+
+    char* aux = "OPERADOR";
+
+    if(strcmp(list_c[i].role,aux) == 0){
+        memset(buf1,0,sizeof(buf1));
+
+        for(j=0; j<MAX_CLIENT;j++)
+            if(list_c[j].socket_num!=INVALID_SOCK){
+                cnt++;
+            }
+        sprintf(buf1,"%s, tem permissões para kickar alguém. \r\n",list_c[i].nick);
+        write(list_c[i].socket_num,buf1,strlen(buf1));
+
+    } else {
+        sprintf(buf1,"%s, não tem permissões para kickar alguém.\r\n", list_c[i].nick);
+        write(list_c[i].socket_num,buf1,strlen(buf1));
+        printf("%s, não tem permissões para tal.\n", list_c[i].nick);
+    }   
 }
 // message
 int message_func(char* chatData,int i){
@@ -308,7 +343,36 @@ int message_func(char* chatData,int i){
 //[/message [Client][message]]
 //quero fazer [/nick [nickname]]
 
-int message2_func(char* chatData,int i){
+int count_tokens(char* chatData){
+    char *token;
+    const char s[2] = " ";
+    int* contador = 0;
+    token=strtok(chatData, s);
+    /* walk through other tokens */
+    while( token != NULL ) {
+      /*if(contador == 3){
+          decisao2 = 1;
+          strcpy(list_c[i].username,token);
+      }
+
+      else if(contador > 3){
+          printf("Comando não aceite. Insira outro comando %s", list_c[i].nick);
+          //decisao2 = 1;
+      }*/
+    
+      token = strtok(NULL, " ");
+      contador++;
+    }
+
+    return contador;
+}
+
+void set_nick(char* c_nick, int i){
+
+    strcpy(list_c[i].nick,c_nick);
+}
+
+void message2_func(char* chatData,int i){
     int j,message_sock;
     char* token=NULL;
     char buf1[MAXLINE];
@@ -317,8 +381,10 @@ int message2_func(char* chatData,int i){
     int contador = 0;
     int indice = 1;
     int tamanho = 0;
+    int tamanho2 = 0;
     char array[MAXLINE];
     int decisao = 0;  //usado para ver se já existe o utilizador já tem um nickname anterior, e quer mudar para outro
+    int decisao2 = 0; //quando insere comando errado, NICK Pedro ...... acaba
 
     memset(buf1,0,sizeof(buf1));
     token=strtok(chatData, " ");
@@ -326,23 +392,11 @@ int message2_func(char* chatData,int i){
 
     tamanho = strlen(list_c[i].username);
 
-    printf("Tamanho %d\n", tamanho);
-
-    aux = list_c[i].username; //atribuir a aux o valor do username
-
-    for(j=0; j<MAX_CLIENT;j++){
-        if((strcmp(list_c[j].username, list_c[i].username) == 0)){ 
-            printf("J-> %s",list_c[j].username );
-            printf("I-> %s",list_c[i].username );
-        }
-    }
-
-
     if(tamanho > 0){
 
         decisao = 1;
 
-        printf("Já tem um nickname atribuido, vai alterar o mesmo %s", list_c[i].nick);
+        strcpy(list_c[i].old_username, list_c[i].username);
 
     } else {
 
@@ -350,36 +404,33 @@ int message2_func(char* chatData,int i){
 
         printf("Vai inserir um nickaname %s", list_c[i].nick);
     }
-   
-    /* walk through other tokens */
+
     while( token != NULL ) {
       contador++;
-      printf( " %s\n", token );
-      printf("%d\n", contador);
-      indice++;
-
       if(contador == 3){
+          decisao2 = 1;
           strcpy(list_c[i].username,token);
+      }
+
+      else if(contador > 3){
+          printf("Comando não aceite. Insira outro comando %s", list_c[i].nick);
+          //decisao2 = 1;
       }
     
       token = strtok(NULL, " ");
-   }
-   printf("%s", list_c[i].username);
-
-   printf("AUX -> %s\n", aux);
+    } 
 
    if(decisao == 2){   //quando o utilizador está a criar o nickname pela primeira vez
         for(j=0; j<MAX_CLIENT;j++)
 
         if(j!=i && list_c[j].socket_num!=INVALID_SOCK){
 
-            sprintf(buf1,"%s Server -> Novo utilizador %s\r\n",list_c[i].nick, list_c[i].username);
+            sprintf(buf1,"Server -> Novo utilizador %s\r\n",list_c[i].nick, list_c[i].username);
 
             write(list_c[j].socket_num,buf1,strlen(buf1));
         } else if(j==i && list_c[j].socket_num!=INVALID_SOCK){
 
-            sprintf(buf1,"%s Nome atribuido com sucesso. %s\r\n",list_c[i].nick, list_c[i].username);
-
+            sprintf(buf1,"RPLY 001 - Nome atribuído com sucesso\n");
             write(list_c[j].socket_num,buf1,strlen(buf1));
         }
    } else if(decisao == 1){
@@ -388,12 +439,12 @@ int message2_func(char* chatData,int i){
 
             if(j!=i && list_c[j].socket_num!=INVALID_SOCK){
 
-                sprintf(buf1,"%s mudou o seu nickname para %s\r\n",/*list_c[i].nick*/aux, list_c[i].username);
+                sprintf(buf1,"%s mudou o seu nickname para %s\r\n",/*list_c[i].nick*/list_c[i].old_username, list_c[i].username);
 
                 write(list_c[j].socket_num,buf1,strlen(buf1));
             } else if(j==i && list_c[j].socket_num!=INVALID_SOCK){
 
-                sprintf(buf1,"%s alterou o seu nome com sucesso para %s\r\n",/*list_c[i].nick*/aux, list_c[i].username);
+                sprintf(buf1,"%s alterou o seu nome com sucesso para %s\r\n",/*list_c[i].nick*/list_c[i].old_username, list_c[i].username);
 
                 write(list_c[j].socket_num,buf1,strlen(buf1));
             }
@@ -529,13 +580,23 @@ void main(int argc, char *argv[])
                         continue;
                     }
                     // Change nickname of the client [/nick]
-                    if(!strcmp(chatData,nickname)){
+                    /*if(!strcmp(chatData,nickname)){
                         username(i);
                         continue;
-                    }
+                    }*/
                     // Gives the user is information
                     if(!strcmp(chatData,user_info)){
                         show_client_info(i);
+                        continue;
+                    }
+                    //
+                    if(!strcmp(chatData,exists)){
+                        see_exists(i);
+                        continue;
+                    }
+                    //
+                    if(!strcmp(chatData,kick)){
+                        kick_user(i);
                         continue;
                     }
                     // Change nickname of the client [/nick]
@@ -549,8 +610,8 @@ void main(int argc, char *argv[])
                         else;
                     }
                     if(strstr(chatData, message2) != NULL){
-                        if(message2_func(chatData, i) == 0) continue;
-                        else;
+                        message2_func(chatData, i);
+                        continue;
                     }
                 }
             }

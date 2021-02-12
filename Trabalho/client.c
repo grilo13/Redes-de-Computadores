@@ -17,8 +17,10 @@ char list[]="LIST\n";
 char message[]="MSSG";
 char message2[]="MSSG2";
 char nickname[]="NICK\n";
+char kick[]="KICK\n";
 char role[]="ROLE\n";
 char info[]="INFO\n";
+char exists[]="EXISTS\n";
 
 void
 chatting(int sockfd, int maxfdp, fd_set rset, char *argv[])
@@ -85,6 +87,16 @@ chatting(int sockfd, int maxfdp, fd_set rset, char *argv[])
                     continue;
                 }
                 if(!strcmp(buf,info))
+                {
+                    write(sockfd, buf, strlen(buf));
+                    continue;
+                }
+                if(!strcmp(buf,kick))
+                {
+                    write(sockfd, buf, strlen(buf));
+                    continue;
+                }
+                if(!strcmp(buf,exists))
                 {
                     write(sockfd, buf, strlen(buf));
                     continue;
