@@ -23,7 +23,7 @@ char list[]="LIST\n";
 char message[]="MSSG";
 char nickname[] ="NICK\n";
 char kick[]="KICK\n";
-char role[]="ROLE\n";
+char role[]="ROLE";
 char user_info[]="INFO\n";
 char message2[]="MAIN";
 char exists[]="EXISTS\n";
@@ -100,13 +100,16 @@ void quit_func(int i){
 }
 
 //give role to user
-void give_role(int i){
+void give_role(char* chatData, int i){
     int j;
     char* token=NULL;
     char buf1[MAXLINE];
+    int contador = 0;
+    char* aux2[20];
+
+    token=strtok(chatData, " ");
 
     char* aux = "operador";
-    char*name = "Pedrinho13\n";
     //strcpy(aux,"OPERADOR");
 
     memset(buf1,0,sizeof(buf1));
@@ -119,7 +122,24 @@ void give_role(int i){
         printf("%s não tem permissões para tal.\n", list_c[i].nick);
     }
 
-    int id_user = see_exists(i,name);
+
+    while( token != NULL ) {
+      contador++;
+      if(contador == 3){
+          printf("%s", token);
+          strcpy(aux2,token);
+      }
+
+      else if(contador > 3){
+          printf("Comando não aceite. Insira outro comando %s", list_c[i].nick);
+      }
+    
+      token = strtok(NULL, " ");
+    }
+
+    printf("AUX2 -> %s ",aux2);
+
+    int id_user = see_exists(i,aux2);
 
     if(id_user == -1){
         for(j=0; j<MAX_CLIENT;j++)
@@ -216,13 +236,14 @@ int see_exists(int i, char* name){
 
     char* aux="Pedrinho\n"; //going to use char name because its the user that chooses it
 
+
     memset(buf1,0,sizeof(buf1));
         //if(list_c[j].socket_num!=INVALID_SOCK)
         /*if(strcmp(list_c[j].username,aux) == 0){
             cnt++;
         }*/
 
-    sprintf(buf1,"[Visitantes atuais do canal : %d]\r\n",cnt);
+    sprintf(buf1,"[Visitantes atuais do canal : %d] ->INPUT %s\r\n",cnt, name);
     write(list_c[i].socket_num,buf1,strlen(buf1));
 
     for(j=0; j<MAX_CLIENT;j++){
@@ -379,8 +400,10 @@ void message2_func(char* chatData,int i){
     int decisao = 0;  //usado para ver se já existe o utilizador já tem um nickname anterior, e quer mudar para outro
     int decisao2 = 0; //quando insere comando errado, NICK Pedro ...... acaba
 
+    char*aux3[25];
+
     memset(buf1,0,sizeof(buf1));
-    token=strtok(chatData, " ");
+    token=strtok(chatData," ");
     char * end;
 
     tamanho = strlen(list_c[i].username);
@@ -389,7 +412,7 @@ void message2_func(char* chatData,int i){
 
         decisao = 1;
 
-        strcpy(list_c[i].old_username, list_c[i].username);
+        strcpy(aux3, list_c[i].username);
 
     } else {
 
@@ -432,12 +455,12 @@ void message2_func(char* chatData,int i){
 
             if(j!=i && list_c[j].socket_num!=INVALID_SOCK){
 
-                sprintf(buf1,"%s mudou o seu nickname para %s\r\n",/*list_c[i].nick*/list_c[i].old_username, list_c[i].username);
+                sprintf(buf1,"%s mudou o seu nickname para %s\r\n",/*list_c[i].nick*/aux3, list_c[i].username);
 
                 write(list_c[j].socket_num,buf1,strlen(buf1));
             } else if(j==i && list_c[j].socket_num!=INVALID_SOCK){
 
-                sprintf(buf1,"%s alterou o seu nome com sucesso para %s\r\n",/*list_c[i].nick*/list_c[i].old_username, list_c[i].username);
+                sprintf(buf1,"%s alterou o seu nome com sucesso para %s\r\n",/*list_c[i].nick*/aux3, list_c[i].username);
 
                 write(list_c[j].socket_num,buf1,strlen(buf1));
             }
@@ -593,8 +616,12 @@ void main(int argc, char *argv[])
                         continue;
                     }
                     // Change nickname of the client [/nick]
-                    if(!strcmp(chatData,role)){
+                    /*if(!strcmp(chatData,role)){
                         give_role(i);
+                        continue;
+                    }*/
+                    if(strstr(chatData, role) != NULL){
+                        give_role(chatData, i);
                         continue;
                     }
                     // 1:1 메세지 보내기 [/message [Client][message]]
