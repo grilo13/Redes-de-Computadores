@@ -121,17 +121,28 @@ void give_role(int i){
 
     int id_user = see_exists(i,name);
 
-    printf("ID USER %d", id_user);
+    if(id_user == -1){
+        for(j=0; j<MAX_CLIENT;j++)
+            if(j==i && list_c[j].socket_num!=INVALID_SOCK){
+                sprintf(buf1,"RPLY 802 – Erro. Ação não autorizada, utilizador cliente não é um operador %s.\r\n",list_c[id_user].role);
+                write(list_c[j].socket_num,buf1,strlen(buf1));
+            }
 
-    strcpy(list_c[id_user].role, aux);
+    } else {
+        printf("ID USER %d", id_user);
 
-    printf("USER %s %s\n", list_c[id_user].username, list_c[id_user].role);
-    for(j=0; j<MAX_CLIENT;j++)
-        if(j==id_user && list_c[j].socket_num!=INVALID_SOCK){
-            sprintf(buf1,"RPLY 801 – Foi promovido a %s.\r\n",list_c[id_user].role);
-            write(list_c[j].socket_num,buf1,strlen(buf1));
-        }
+        strcpy(list_c[id_user].role, aux);
 
+        printf("USER %s %s\n", list_c[id_user].username, list_c[id_user].role);
+        for(j=0; j<MAX_CLIENT;j++)
+            if(j==id_user && list_c[j].socket_num!=INVALID_SOCK){
+                sprintf(buf1,"RPLY 801 – Foi promovido a %s.\r\n",list_c[id_user].role);
+                write(list_c[j].socket_num,buf1,strlen(buf1));
+            } else if(j==i && list_c[j].socket_num!=INVALID_SOCK){
+                sprintf(buf1,"Promoveste a %s o utilizador %s\r\n",list_c[id_user].role, list_c[id_user].username);
+                write(list_c[j].socket_num,buf1,strlen(buf1));
+            }
+    }
 }
 
 /*void kick(char* chatData,int i){
@@ -220,33 +231,13 @@ int see_exists(int i, char* name){
                 id = j;
                 sprintf(buf1,"ID: %d e Nome utilizador: %s\n", list_c[j].socket_num,list_c[j].username);
                 write(list_c[i].socket_num,buf1,strlen(buf1));
+            } else {
+                id = -1;  //não encontra utilizador com o nome pedido
             }
         }
     }
 
-    return id;
-    /*if(strcmp(list_c[i].username,aux) == 0){
-        memset(buf1,0,sizeof(buf1));
-
-        for(j=0; j<MAX_CLIENT;j++)
-        if(list_c[j].socket_num!=INVALID_SOCK){
-                cnt++;
-            }
-        sprintf(buf1,"Existe um username com esse nome %s -> %d]\r\n",list_c[i].username,cnt);
-        write(list_c[i].socket_num,buf1,strlen(buf1));
-
-        for(j=0; j<MAX_CLIENT;j++){
-            if(list_c[j].socket_num!=INVALID_SOCK){
-                sprintf(buf1,"[%s from %s: %d]\r\n",list_c[j].nick,list_c[j].ip,list_c[j].port);
-                write(list_c[i].socket_num,buf1,strlen(buf1));
-            }
-        }
-
-    } else {
-        sprintf(buf1,"Não tem permissões para o fazer. %s\r\n", list_c[i].nick);
-        write(list_c[i].socket_num,buf1,strlen(buf1));
-        printf("%s não tem permissões para tal.\n", list_c[i].nick);
-    }  */
+    return id; //retorna o id do utilizador encontrado, se for igual a -1, é porque não encontrou esse utilizador.
 }
 
 
