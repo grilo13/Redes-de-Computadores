@@ -105,7 +105,8 @@ void give_role(int i){
     char* token=NULL;
     char buf1[MAXLINE];
 
-    char* aux = "OPERADOR";
+    char* aux = "operador";
+    char*name = "Pedrinho13\n";
     //strcpy(aux,"OPERADOR");
 
     memset(buf1,0,sizeof(buf1));
@@ -118,18 +119,19 @@ void give_role(int i){
         printf("%s não tem permissões para tal.\n", list_c[i].nick);
     }
 
-    int id_user = see_exists(i);
+    int id_user = see_exists(i,name);
 
     printf("ID USER %d", id_user);
 
     strcpy(list_c[id_user].role, aux);
 
-    printf("%s\n", list_c[id_user].role);
+    printf("USER %s %s\n", list_c[id_user].username, list_c[id_user].role);
     for(j=0; j<MAX_CLIENT;j++)
-        if(j!=i && list_c[j].socket_num!=INVALID_SOCK){
-            sprintf(buf1,"%s is now a %s\r\n",list_c[i].nick, list_c[i].role);
+        if(j==id_user && list_c[j].socket_num!=INVALID_SOCK){
+            sprintf(buf1,"RPLY 801 – Foi promovido a %s.\r\n",list_c[id_user].role);
             write(list_c[j].socket_num,buf1,strlen(buf1));
         }
+
 }
 
 /*void kick(char* chatData,int i){
@@ -195,13 +197,13 @@ void show_client_info(int i){
 
 
 //see if exists the name, then return the index of the socket user
-int see_exists(int i){
+int see_exists(int i, char* name){
     int j,cnt=0;
     char buf1[MAXLINE];
 
     int id;
 
-    char* aux="Pedrinho\n";
+    char* aux="Pedrinho\n"; //going to use char name because its the user that chooses it
 
     memset(buf1,0,sizeof(buf1));
         //if(list_c[j].socket_num!=INVALID_SOCK)
@@ -214,8 +216,8 @@ int see_exists(int i){
 
     for(j=0; j<MAX_CLIENT;j++){
         if(list_c[j].socket_num!=INVALID_SOCK){
-            if(strcmp(list_c[j].username,aux) == 0){
-                id = list_c[j].socket_num;
+            if(strcmp(list_c[j].username,name) == 0){
+                id = j;
                 sprintf(buf1,"ID: %d e Nome utilizador: %s\n", list_c[j].socket_num,list_c[j].username);
                 write(list_c[i].socket_num,buf1,strlen(buf1));
             }
@@ -590,10 +592,10 @@ void main(int argc, char *argv[])
                         continue;
                     }
                     //
-                    if(!strcmp(chatData,exists)){
+                    /*if(!strcmp(chatData,exists)){
                         see_exists(i);
                         continue;
-                    }
+                    }*/
                     //
                     if(!strcmp(chatData,kick)){
                         kick_user(i);
