@@ -16,6 +16,8 @@
 #define NICKNAME 9
 #define INVALID_SOCK -1
 
+#define TRUE 1
+
 //char greeting[]="Bem-vindo à sala.\n";
 char ERROR[]= "Erro.\n";
 char quit[]="QUIT\n";
@@ -41,7 +43,6 @@ int pushClient(int connfd, char* c_ip, int c_port){
     for(i=0;i<MAX_CLIENT;i++){
         if(list_c[i].socket_num==INVALID_SOCK){
             list_c[i].socket_num = connfd;
-            //strcpy(list_c[i].nick,c_nick);
             strcpy(list_c[i].ip,c_ip);
             list_c[i].port=c_port;
             return i;
@@ -70,16 +71,34 @@ int popClient(int s)
 }
 
 
-int nick_func(char* chatData, int i){
+void set_nick(char* c_nick, int i){
 
-    char* token=NULL;
+    strcpy(list_c[i].nick,c_nick);
+ 
+}
+
+
+void nick_func(char* chatData, int i){
+
+    char* token;
     char buf1[MAXLINE];
+    char* end = " ";
 
     memset(buf1,0,sizeof(buf1));
-    token=strtok(chatData, " ");
-    printf("%s", token);
-    char * end;
-    return 0;
+
+    
+    token = strtok(chatData, end);
+
+    if(strcmp(token, nickname)==0){
+      token = strtok(NULL, end);
+      token[strcspn(token, "\n")] = 0;
+        for(int j=0;j<MAX_CLIENT;j++){
+            if(list_c[j].socket_num!=INVALID_SOCK){
+                set_nick(token, j);
+                write(list_c[i].socket_num,buf1,strlen(buf1)); 
+            }
+        }
+    }
 
 }
 
@@ -122,15 +141,19 @@ void list_func(int i){
     char buf1[MAXLINE];
 
     memset(buf1,0,sizeof(buf1));
+
     for(j=0; j<MAX_CLIENT;j++)
-        if(list_c[j].socket_num!=INVALID_SOCK)cnt++;
+        if(list_c[j].socket_num!=INVALID_SOCK)
+            cnt++;
     sprintf(buf1,"[Visitantes atuais : %d]\r\n",cnt);
     write(list_c[i].socket_num,buf1,strlen(buf1));
-    for(j=0; j<MAX_CLIENT;j++)
+
+    for(j=0; j<MAX_CLIENT;j++){
         if(list_c[j].socket_num!=INVALID_SOCK){
             sprintf(buf1,"[%s from %s: %d]\r\n",list_c[j].nick,list_c[j].ip,list_c[j].port);
             write(list_c[i].socket_num,buf1,strlen(buf1));
         }
+    }   
 }
 // message
 int message_func(char* chatData,int i){
@@ -309,8 +332,8 @@ void main(int argc, char *argv[])
                         }
                     
                         if(strstr(chatData, nickname) != NULL){
-                            if(nick_func(chatData, i) == 0) continue;
-                            else;
+                            nick_func(chatData, i);
+                            continue;
                         }
                     
                         // Encerrando a conexão [/ quit]
@@ -334,7 +357,6 @@ void main(int argc, char *argv[])
 
                 } 
                   
-
                    /*
 
                     // Enviar mensagem de bate-papo padrão
