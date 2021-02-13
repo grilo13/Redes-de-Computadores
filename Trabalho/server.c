@@ -84,8 +84,8 @@ void constr_func(int i,int index){
     sprintf(buf1,"[%s is connected]\r\n",list_c[i].nick);
     write(list_c[index].socket_num,buf1,strlen(buf1));
 }
-// quit
-void quit_func(int i){
+// quit disconnects user
+/*void quit_func(int i){
     int j;
     char* token=NULL;
     char buf1[MAXLINE];
@@ -97,6 +97,65 @@ void quit_func(int i){
             sprintf(buf1,"%s Deixou de ser operador.\r\n",list_c[i].nick);
             write(list_c[j].socket_num,buf1,strlen(buf1));
         }
+}*/
+
+//QUIT - utilizador desiste de ser operador
+void quit_func(int i){
+    int j;
+    char* token=NULL;
+    char buf1[MAXLINE];
+
+    int decisao = 0;
+
+    char* aux = "operador";
+    char* aux2 = "user";
+
+    memset(buf1,0,sizeof(buf1));
+
+    for(j=0; j<MAX_CLIENT;j++)
+        /*if(j!=i && list_c[j].socket_num!=INVALID_SOCK){
+            sprintf(buf1,"%s Deixou de ser operador.\r\n",list_c[i].nick);
+            write(list_c[j].socket_num,buf1,strlen(buf1));
+        }*/
+        if(j==i && list_c[j].socket_num!=INVALID_SOCK){
+
+            if(strcmp(list_c[i].role,aux) == 0){
+                strcpy(list_c[i].role,aux2);
+                sprintf(buf1,"\nRPLY 901 – %s Deixou de ser operador.%s\r\n",list_c[i].username, list_c[i].role);
+                write(list_c[i].socket_num,buf1,strlen(buf1));
+                printf("\nRPLY 901 – %s Deixou de ser operador.%s\r\n",list_c[i].username, list_c[i].role);
+            } else {
+                sprintf(buf1,"\nRPLY 902 – Erro. Ação não autorizada, utilizador %s não é um operador %s.\r\n",list_c[i].username, list_c[i].role);
+                write(list_c[i].socket_num,buf1,strlen(buf1));
+                printf("\nRPLY 902 – Erro. Ação não autorizada, utilizador %s não é um operador %s.\r\n",list_c[i].username, list_c[i].role);
+            }
+
+            for(int k=0; k<MAX_CLIENT;k++){
+                if(j!=i && list_c[j].socket_num!=INVALID_SOCK){
+                    if(strcmp(list_c[i].role,aux) == 0){
+                        strcpy(list_c[i].role,aux2);
+                        sprintf(buf1,"\nRPLY 901 – %s Deixou de ser operador.%s\r\n",list_c[i].username, list_c[i].role);
+                        write(list_c[j].socket_num,buf1,strlen(buf1));
+                    } else {
+                        sprintf(buf1,"\nRPLY 902 – Erro. Ação não autorizada, utilizador %s não é um operador %s.\r\n",list_c[i].username, list_c[i].role);
+                        write(list_c[j].socket_num,buf1,strlen(buf1));
+                    }
+                }
+            }
+        } 
+
+    /*if(decisao == 1){
+        for(int k = 0; j<MAX_CLIENT;k++){
+            if(j==i && list_c[j].socket_num!=INVALID_SOCK){
+                strcpy(list_c[i].role,aux2);
+                sprintf(buf1,"\nDeixas-te de ser operador %d. %s, %s\r\n",decisao,list_c[i].username, list_c[i].role);
+                write(list_c[i].socket_num,buf1,strlen(buf1));
+            } else if(j!=i && list_c[j].socket_num!=INVALID_SOCK){
+                sprintf(buf1,"\n%s deixou de ser operador %d.\r\n",list_c[i].username, decisao);
+                write(list_c[j].socket_num,buf1,strlen(buf1));
+            }
+        }
+    }*/
 }
 
 //give role to user
@@ -135,20 +194,23 @@ void give_role(char* chatData, int i){
       }
     
       token = strtok(NULL, " ");
+
     }
 
     printf("AUX2 -> %s ",aux2);
 
     int id_user = see_exists(i,aux2);
 
-    if(id_user == -1){
+    printf("\nID USER -> %d", id_user);
+
+    /*if(id_user == -1){
         for(j=0; j<MAX_CLIENT;j++)
             if(j==i && list_c[j].socket_num!=INVALID_SOCK){
                 sprintf(buf1,"RPLY 802 – Erro. Ação não autorizada, utilizador cliente não é um operador %s.\r\n",list_c[id_user].role);
                 write(list_c[j].socket_num,buf1,strlen(buf1));
             }
 
-    } else {
+    }*/ //else {
         printf("ID USER %d", id_user);
 
         strcpy(list_c[id_user].role, aux);
@@ -162,7 +224,7 @@ void give_role(char* chatData, int i){
                 sprintf(buf1,"Promoveste a %s o utilizador %s\r\n",list_c[id_user].role, list_c[id_user].username);
                 write(list_c[j].socket_num,buf1,strlen(buf1));
             }
-    }
+    //}
 }
 
 /*void kick(char* chatData,int i){
@@ -232,7 +294,7 @@ int see_exists(int i, char* name){
     int j,cnt=0;
     char buf1[MAXLINE];
 
-    int id;
+    int id = 0;
 
     char* aux="Pedrinho\n"; //going to use char name because its the user that chooses it
 
@@ -243,6 +305,8 @@ int see_exists(int i, char* name){
             cnt++;
         }*/
 
+    printf("\nNAME -> %s", name);
+
     sprintf(buf1,"[Visitantes atuais do canal : %d] ->INPUT %s\r\n",cnt, name);
     write(list_c[i].socket_num,buf1,strlen(buf1));
 
@@ -252,9 +316,9 @@ int see_exists(int i, char* name){
                 id = j;
                 sprintf(buf1,"ID: %d e Nome utilizador: %s\n", list_c[j].socket_num,list_c[j].username);
                 write(list_c[i].socket_num,buf1,strlen(buf1));
-            } else {
+            } /*else {
                 id = -1;  //não encontra utilizador com o nome pedido
-            }
+            }*/
         }
     }
 
@@ -587,7 +651,7 @@ void main(int argc, char *argv[])
                     // 접속 종료하기 [/quit]
                     if(!strcmp(chatData, quit)){   // disconnect from the client "i"
                         quit_func(i);
-                        popClient(list_c[i].socket_num);
+                        //popClient(list_c[i].socket_num);
                         continue;
                     }
                     // Client 리스트 보여주기 [/list]

@@ -69,7 +69,8 @@ chatting(int sockfd, int maxfdp, fd_set rset, char *argv[])
                 if(!strcmp(buf, quit))
                 {
                     write(sockfd, buf, strlen(buf));
-                    break;
+                    //break;
+                    continue;
                 }
                 if(!strcmp(buf,list))
                 {
