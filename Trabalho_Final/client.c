@@ -112,10 +112,6 @@ chatting(int sockfd, int maxfdp, fd_set rset, char *argv[])
                     continue;
                 }
 
-                /*
-                write(sockfd, chatData, strlen(chatData));
-                */
-
             }
         }
 
