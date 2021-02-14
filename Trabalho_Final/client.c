@@ -106,7 +106,7 @@ chatting(int sockfd, int maxfdp, fd_set rset, char *argv[])
                     write(sockfd, buf, strlen(buf));
                     continue;
                 }
-                if(!strcmp(buf,role))
+                if(strstr(buf,role))
                 {
                     write(sockfd, buf, strlen(buf));
                     continue;
