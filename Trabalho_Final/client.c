@@ -12,11 +12,16 @@
 #define CHATDATA 512
 
 // Command
+char ERROR[]= "Erro.\n";
 char quit[]="QUIT\n";
 char whos[]="WHOS\n";
 char message[]="MSSG";
 char nickname[]="NICK";
-
+char kick[]="KICK\n";
+char role[]="ROLE";
+char user_info[]="INFO\n";
+char message2[]="MAIN";
+char exists[]="EXISTS\n";
 
 void
 chatting(int sockfd, int maxfdp, fd_set rset, char *argv[])
@@ -46,10 +51,11 @@ chatting(int sockfd, int maxfdp, fd_set rset, char *argv[])
             // Ler as mensagens de bate-papo do descritor de arquivo Socket.
             if((n = read(sockfd, chatData, sizeof(chatData))) > 0)
             {
-                // A mensagem lida é exibida na tela do cliente.
-                write(1, chatData, n);
+
+                write(1, chatData, n); // A mensagem lida é exibida na tela do cliente.
             }
         }
+
         /*************************************************************/
 
 
@@ -80,20 +86,36 @@ chatting(int sockfd, int maxfdp, fd_set rset, char *argv[])
                     write(sockfd, buf, strlen(buf));
                     continue;
                 }
+                if(!strcmp(buf,user_info))
+                {
+                    write(sockfd, buf, strlen(buf));
+                    continue;
+                }
+                if(!strcmp(buf,kick))
+                {
+                    write(sockfd, buf, strlen(buf));
+                    continue;
+                }
+                if(!strcmp(buf,exists))
+                {
+                    write(sockfd, buf, strlen(buf));
+                    continue;
+                }
                 if(strstr(buf,message) != NULL)
                 {
                     write(sockfd, buf, strlen(buf));
                     continue;
                 }
-                
+                if(!strcmp(buf,role))
+                {
+                    write(sockfd, buf, strlen(buf));
+                    continue;
+                }
+
                 /*
-                // No caso de uma mensagem de bate-papo geral, não um comando
-                //Transferir para o servidor
-                sprintf(chatData, "[%s] %s", argv[3], buf);
                 write(sockfd, chatData, strlen(chatData));
                 */
-                
-                
+
             }
         }
 
@@ -111,7 +133,6 @@ main(int argc,char *argv[])
     // Saída de mensagem de erro quando a entrada do parâmetro está incorreta
     if(argc < 3)
     {
-        //printf("usage:%s [ip_address] [port_number] [nickname]\n",argv[0]);
         printf("usage:%s [ip_address] [port_number]\n",argv[0]);
         exit(0);
     }
@@ -133,7 +154,6 @@ main(int argc,char *argv[])
         perror("connect");
         exit(0);
     }
-
 
     maxfdp=sockfd + 1;
 
