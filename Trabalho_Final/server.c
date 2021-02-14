@@ -10,32 +10,36 @@
 #include<sys/socket.h>
 #include<sys/select.h>
 
-#define MAXLINE 512
 #define MAX_CLIENT 1000
+#define MAXLINE 512
 #define CHATDATA 512
-#define NICKNAME 9
+#define NICKNAME 10
 #define INVALID_SOCK -1
+#define ROLESIZE 10
 
-#define TRUE 1
-
-//char greeting[]="Bem-vindo à sala.\n";
 char ERROR[]= "Erro.\n";
 char quit[]="QUIT\n";
 char whos[]="WHOS\n";
 char message[]="MSSG";
 char nickname[]="NICK";
+char kick[]="KICK\n";
+char role[]="ROLE";
+char user_info[]="INFO\n";
+char message2[]="MAIN";
+char exists[]="EXISTS\n";
 
 // Client List
 struct List_c{
-    int socket_num;         // Socket number
+    int socket_num;
+    int first_command;         // Socket number
     char nick[NICKNAME];    // Client nickname 
     char ip[40];            // Client IP 
-    int port;               // Server port 
+    int port;               // Server port
+    char role[ROLESIZE];            
 }list_c[MAX_CLIENT];
 
 // Armazenamento de índice de clientes conectados
 
-// int pushClient(int connfd, char* c_nick, char* c_ip, int c_port){
 int pushClient(int connfd, char* c_ip, int c_port){    
 
     int i;
@@ -70,6 +74,18 @@ int popClient(int s)
     return 0;
 }
 
+// connect
+void constr_func(int i,int index){
+    char buf1[MAXLINE];
+
+    memset(buf1,0,sizeof(buf1));
+    sprintf(buf1,"[%s is connected]\r\n",list_c[index].nick);
+    write(list_c[i].socket_num,buf1,strlen(buf1));
+
+    sprintf(buf1,"[%s is connected]\r\n",list_c[i].nick);
+    write(list_c[index].socket_num,buf1,strlen(buf1));
+}
+
 
 void set_nick(char* c_nick, int i){
 
@@ -77,12 +93,17 @@ void set_nick(char* c_nick, int i){
  
 }
 
-
+//NICK 
 void nick_func(char* chatData, int i){
 
     char* token;
+    char old_nick[NICKNAME];
     char buf1[MAXLINE];
     char* end = " ";
+    int aux = 0;
+    int aux2 = 0;
+    int tamanho;
+
 
     memset(buf1,0,sizeof(buf1));
 
@@ -93,72 +114,231 @@ void nick_func(char* chatData, int i){
       token = strtok(NULL, end);
       token[strcspn(token, "\n")] = 0;
         if(strlen(token) == 0){
-            puts("RPLY 002 - Erro: Falta introdução do nome.\n");
-            sprintf(buf1,"RPLY 002 - Erro: Falta introdução do nome.\n");
-            write(list_c[i].socket_num,buf1,strlen(buf1));
+            if(list_c[i].socket_num!=INVALID_SOCK){
+                puts("RPLY 002 - Erro: Falta introdução do nome.\n");
+                sprintf(buf1,"RPLY 002 - Erro: Falta introdução do nome.\n");
+                write(list_c[i].socket_num,buf1,strlen(buf1));
+            }
         }else{
-            for(int j=0;j<MAX_CLIENT;j++){
-                if(list_c[j].socket_num!=INVALID_SOCK){
-                    if(strlen(token) > NICKNAME){
-                        puts("RPLY 003 - Erro: Nome pedido não válido. (Excede nº máximo de carateres permitido ou utiliza carateres inválidos\n");
-                        sprintf(buf1,"RPLY 003 - Erro: Nome pedido não válido. (Excede nº máximo de carateres permitido ou utiliza carateres inválidos\n");
-                        write(list_c[j].socket_num,buf1,strlen(buf1));
-                        break;
-                    }else{
-                        set_nick(token, j);
-                        write(list_c[j].socket_num,buf1,strlen(buf1));
-                        puts("RPLY 001 - Nome atribuído com sucesso\n");
-                        sprintf(buf1,"RPLY 001 - Nome atribuído com sucesso\n");
-                        write(list_c[j].socket_num,buf1,strlen(buf1));
-                        printf("%s has been connected from %s\n", list_c[j].nick, list_c[j].ip);
-
-                        break;
+            if(list_c[i].socket_num!=INVALID_SOCK){
+                if(strlen(token) > NICKNAME){
+                    puts("RPLY 003 - Erro: Nome pedido não válido. (Excede nº máximo de carateres permitido ou utiliza carateres inválidos\n");
+                    sprintf(buf1,"RPLY 003 - Erro: Nome pedido não válido. (Excede nº máximo de carateres permitido ou utiliza carateres inválidos\n");
+                    write(list_c[i].socket_num,buf1,strlen(buf1));
+                }else if(strlen(token) < NICKNAME){
+                    for(int j = 0; j < MAX_CLIENT; j++){
+                        if(strcmp(list_c[j].nick,token)==0){
+                            puts("RPLY 004 - Erro: nome já em uso (num outro utilizador registado ou em uso por um utilizador não registado, e o comando não tem qualquer efeito\n");
+                            sprintf(buf1,"RPLY 004 - Erro: nome já em uso (num outro utilizador registado ou em uso por um utilizador não registado, e o comando não tem qualquer efeito\n");
+                            write(list_c[i].socket_num,buf1,strlen(buf1));
+                            aux = aux + 1;
+                            break;
+                        }
+                    }
+                    if(aux == 0){
+                        tamanho = strlen(list_c[i].nick);
+                        //sprintf(buf1,"%d", tamanho);
+                        //write(list_c[i].socket_num,buf1,strlen(buf1));
+                        if(tamanho > 0){
+                            strcpy(old_nick,list_c[i].nick);
+                            set_nick(token, i);
+                            //sprintf(buf1,"%d", list_c[i].nick);
+                            //write(list_c[i].socket_num,buf1,strlen(buf1));
+                        }else{
+                            set_nick(token, i);
+                            puts("RPLY 001 - Nome atribuído com sucesso\n");
+                            sprintf(buf1,"RPLY 001 - Nome atribuído com sucesso\n");
+                            write(list_c[i].socket_num,buf1,strlen(buf1));
+                            printf("%s has been connected from %s \n", list_c[i].nick, list_c[i].ip);
+                            aux2 = 1;
+                        }
+ 
                     }
                 }
-            }   
+            }
         }
+
     }else{
-        puts("RPLY 002 - Erro: Falta introdução do nome.\n"); 
-        sprintf(buf1,"RPLY 002 - Erro: Falta introdução do nome.\n");
-        write(list_c[i].socket_num,buf1,strlen(buf1));
+        if(list_c[i].socket_num!=INVALID_SOCK){
+            puts("RPLY 002 - Erro: Falta introdução do nome.\n"); 
+            sprintf(buf1,"RPLY 002 - Erro: Falta introdução do nome.\n");
+            write(list_c[i].socket_num,buf1,strlen(buf1));
+        }
     }
 
+    if(aux2 == 1){
+        for(int j = 0; j < MAX_CLIENT; j++){  
+            if(list_c[j].socket_num!=INVALID_SOCK){
+                if(j!=i){
+                    sprintf(buf1,"MSSG server :> novo utilizador <%s> \n", list_c[i].nick);
+                    write(list_c[j].socket_num,buf1,strlen(buf1));
+                }
+            }
+        }
+    }else if(aux2 == 0){
+       for(int j = 0; j < MAX_CLIENT; j++){  
+            if(list_c[j].socket_num!=INVALID_SOCK){
+                if(j!=i){
+                    sprintf(buf1,"MSSG server :> <%s> mudou o seu nome para <%s> \n", old_nick, list_c[i].nick);
+                    write(list_c[j].socket_num,buf1,strlen(buf1));
+                }
+            }
+        }
+    }
 }
 
 
-// connect
-void constr_func(int i,int index){
-
-    char buf1[MAXLINE];
-
-    memset(buf1,0,sizeof(buf1));
-
-    sprintf(buf1,"[%s is connected]\r\n",list_c[index].nick);
-    write(list_c[i].socket_num,buf1,strlen(buf1));
-
-    sprintf(buf1,"[%s is connected]\r\n",list_c[i].nick);
-    write(list_c[index].socket_num,buf1,strlen(buf1));
-}
-
-// quit
-void quit_func(int i){
-
+//show the info of the users
+void show_client_info(int i){
     int j;
     char* token=NULL;
     char buf1[MAXLINE];
 
     memset(buf1,0,sizeof(buf1));
 
-    printf("%s Bye Bye ~ %s\r\n",list_c[i].nick, list_c[i].ip);
-
     for(j=0; j<MAX_CLIENT;j++)
-        if(j!=i && list_c[j].socket_num!=INVALID_SOCK){
-            sprintf(buf1,"[%s Bye Bye ~]\r\n",list_c[i].nick);
+        if(j==i && list_c[j].socket_num!=INVALID_SOCK){
+            sprintf(buf1,"User details\n-> %s\n-> %d\n-> %s\r\n" ,list_c[i].nick, list_c[i].socket_num, list_c[i].ip);
             write(list_c[j].socket_num,buf1,strlen(buf1));
         }
 }
 
-// list
+//see if exists the name, then return the index of the socket user
+int see_exists(int i, char* name){
+    int j,cnt=0;
+    char buf1[MAXLINE];
+
+    int id;
+
+    memset(buf1,0,sizeof(buf1));
+      
+    sprintf(buf1,"[Visitantes atuais do canal : %d] ->INPUT %s\r\n",cnt, name);
+    write(list_c[i].socket_num,buf1,strlen(buf1));
+
+    for(j=0; j<MAX_CLIENT;j++){
+        if(list_c[j].socket_num!=INVALID_SOCK){
+            if(strcmp(list_c[j].nick,name) == 0){
+                id = j;
+                sprintf(buf1,"ID: %d e Nome utilizador: %s\n", list_c[j].socket_num,list_c[j].nick);
+                write(list_c[i].socket_num,buf1,strlen(buf1));
+            } else {
+                id = -1;  //não encontra utilizador com o nome pedido
+            }
+        }
+    }
+
+    return id; //retorna o id do utilizador encontrado, se for igual a -1, é porque não encontrou esse utilizador.
+}
+
+
+// QUIT
+void quit_func(int i){
+    int j;
+    char* token=NULL;
+    char buf1[MAXLINE];
+
+    memset(buf1,0,sizeof(buf1));
+    printf("%s logged out from the ip %s\r\n",list_c[i].nick, list_c[i].ip);
+    for(j=0; j<MAX_CLIENT;j++)
+        if(j!=i && list_c[j].socket_num!=INVALID_SOCK){
+            sprintf(buf1,"%s Deixou de ser operador.\r\n",list_c[i].nick);
+            write(list_c[j].socket_num,buf1,strlen(buf1));
+        }
+}
+
+//GIVE ROLE TO USER
+void give_role(char* chatData, int i){
+    int j;
+    char* token=NULL;
+    char buf1[MAXLINE];
+    int contador = 0;
+    char aux2[20];
+
+    token=strtok(chatData, " ");
+
+    char* aux=NULL;
+    
+    aux = "operador";
+
+
+    memset(buf1,0,sizeof(buf1));
+    printf("%s \n", list_c[i].role);
+    printf("%s wants to add a role\r\n",list_c[i].nick);
+
+    if(strcmp(list_c[i].role,aux) == 0){
+        printf("%s pode dar role operador a outro utilizador.\n", list_c[i].nick);
+    } else {
+        printf("%s não tem permissões para tal.\n", list_c[i].nick);
+    }
+
+
+    while( token != NULL ) {
+      contador++;
+      if(contador == 3){
+          printf("%s", token);
+          strcpy(aux2,token);
+      }
+
+      else if(contador > 3){
+          printf("Comando não aceite. Insira outro comando %s", list_c[i].nick);
+      }
+    
+      token = strtok(NULL, " ");
+    }
+
+    printf("AUX2 -> %s ", aux2);
+
+    int id_user = see_exists(i,aux2);
+
+    if(id_user == -1){
+        for(j=0; j<MAX_CLIENT;j++)
+            if(j==i && list_c[j].socket_num!=INVALID_SOCK){
+                sprintf(buf1,"RPLY 802 – Erro. Ação não autorizada, utilizador cliente não é um operador %s.\r\n",list_c[id_user].role);
+                write(list_c[j].socket_num,buf1,strlen(buf1));
+            }
+
+    } else {
+        printf("ID USER %d", id_user);
+
+        strcpy(list_c[id_user].role, aux);
+
+        printf("USER %s %s\n", list_c[id_user].nick, list_c[id_user].role);
+        for(j=0; j<MAX_CLIENT;j++)
+            if(j==id_user && list_c[j].socket_num!=INVALID_SOCK){
+                sprintf(buf1,"RPLY 801 – Foi promovido a %s.\r\n",list_c[id_user].role);
+                write(list_c[j].socket_num,buf1,strlen(buf1));
+            } else if(j==i && list_c[j].socket_num!=INVALID_SOCK){
+                sprintf(buf1,"Promoveste a %s o utilizador %s\r\n",list_c[id_user].role, list_c[id_user].nick);
+                write(list_c[j].socket_num,buf1,strlen(buf1));
+            }
+    }
+}
+
+//KICK
+void kick_user(int i){
+    int j,cnt=0;
+    char buf1[MAXLINE];
+
+    char* aux = "OPERADOR";
+
+    if(strcmp(list_c[i].role,aux) == 0){
+        memset(buf1,0,sizeof(buf1));
+
+        for(j=0; j<MAX_CLIENT;j++)
+            if(list_c[j].socket_num!=INVALID_SOCK){
+                cnt++;
+            }
+        sprintf(buf1,"%s, tem permissões para kickar alguém. \r\n",list_c[i].nick);
+        write(list_c[i].socket_num,buf1,strlen(buf1));
+
+    } else {
+        sprintf(buf1,"%s, não tem permissões para kickar alguém.\r\n", list_c[i].nick);
+        write(list_c[i].socket_num,buf1,strlen(buf1));
+        printf("%s, não tem permissões para tal.\n", list_c[i].nick);
+    }   
+}
+// WHOS
+
 void whos_func(int i){
     int j,cnt=0;
     char buf1[MAXLINE];
@@ -180,33 +360,65 @@ void whos_func(int i){
 }
 // message
 int message_func(char* chatData,int i){
-    int j,message_sock;
-    char* token=NULL;
+    int message_sock;
+    char* token;
     char buf1[MAXLINE];
+    char* end = " ";
+    int aux;
 
     memset(buf1,0,sizeof(buf1));
-    token=strtok(chatData, " ");
-    char * end;
 
-    if(strcmp(token, message)){
-        if((end=strtok(NULL,"\n"))==NULL)
-            sprintf(buf1,"%s",token);
-        else sprintf(buf1,"%s %s",token,end);
-        sprintf(chatData,"[%s] %s\r\n",list_c[i].nick,buf1);
-        return 1;
+    
+    token = strtok(chatData, end);
+
+    if(strcmp(token, message)==0){
+      token = strtok(NULL, end);
+      token[strcspn(token, "\n")] = 0; //remover \n 
+        if(strlen(token) == 0){
+            for(int j=0;j<MAX_CLIENT;j++){
+                if(list_c[j].socket_num!=INVALID_SOCK && j==i){
+                    puts("RPLY 102 - Erro. Não há texto na mensagem.\n");
+                    sprintf(buf1,"RPLY 102 - Erro. Não há texto na mensagem.\n");
+                    write(list_c[i].socket_num,buf1,strlen(buf1));
+                    aux = 1;
+                    return aux;
+                }
+            }
+        }else{
+            for(int j=0;j<MAX_CLIENT;j++){
+                if(list_c[j].socket_num!=INVALID_SOCK && j==i){
+                    if(strlen(token) > CHATDATA){
+                        puts("RPLY 103 - Erro. Mensagem demasiado longa.\n");
+                        sprintf(buf1,"RPLY 103 - Erro. Mensagem demasiado longa.\n");
+                        write(list_c[j].socket_num,buf1,strlen(buf1));
+                        aux = 2;
+                        return aux;
+                        break;
+                    }else{
+                        puts("RPLY 101 - mensagem enviada com sucesso.\n");
+                        sprintf(buf1,"RPLY 101 - mensagem enviada com sucesso. \n");
+                        write(list_c[j].socket_num,buf1,strlen(buf1));
+                        aux = 3;
+                        return aux;
+                        break;
+                    }
+                }
+            }   
+        }
+    }else{
+        for(int j=0;j<MAX_CLIENT;j++){
+            if(list_c[j].socket_num!=INVALID_SOCK && j==i){
+                puts("RPLY 102 - Erro. Não há texto na mensagem.\n"); 
+                sprintf(buf1,"RPLY 102 - Erro. Não há texto na mensagem.\n");
+                write(list_c[i].socket_num,buf1,strlen(buf1));
+                aux = 1;
+                return aux;
+            }
+        }
     }
-    else{
-        token=strtok(NULL," ");
-        for(j=0;j<MAX_CLIENT;j++)
-            if(!strcmp(list_c[j].nick, token))
-                message_sock=list_c[j].socket_num;
-        token=strtok(NULL, "\n");
-        memset(buf1, 0, sizeof(buf1));
-        sprintf(buf1, "[message from %s] %s\r\n", list_c[i].nick, token);
-        write(message_sock, buf1, strlen(buf1));
-        return 0;
-    }
+
 }
+
 
 void main(int argc, char *argv[])
 {
@@ -218,6 +430,8 @@ void main(int argc, char *argv[])
 
     int index;
 
+
+    char* end = " ";
     char* token=NULL;
     char buf1[MAXLINE];
     char buf2[MAXLINE];
@@ -266,9 +480,9 @@ void main(int argc, char *argv[])
 
     int save_port = (int) ntohs(servaddr.sin_port);
 
-    printf("[Server address %s : %d]\n", buf1, ntohs(servaddr.sin_port));
+    printf("[Server address %s : %d]\n\n", buf1, ntohs(servaddr.sin_port));
 
-    char *message = "Session started! \n set your nickname with command NICK first!\n";
+    char *message2 = "Session started! \n set your nickname with command NICK first!\n";
 
 
     for ( ; ; )
@@ -303,19 +517,14 @@ void main(int argc, char *argv[])
 
                 //memset(buf1, 0, sizeof(buf1));
                 memset(buf2, 0, sizeof(buf2));
-               
-
-                //read(newSockfd, buf1, sizeof(buf1));   // Ler o nick do cliente.
 
                 inet_ntop(AF_INET, &servaddr.sin_addr, buf2, sizeof(buf2));
+             
+                index = pushClient(newSockfd, buf2, save_port); //criar um cliente
 
+                message2 = "Welcome! \n Set your nickname with command NICK first! --> NICK <nickname>  \n";
 
-                //index = pushClient(newSockfd, buf1 , buf2, save_port);
-                index = pushClient(newSockfd, buf2, save_port);
-
-                message = "Session started! \n Set your nickname with command NICK ! \n";
-
-                if( send(newSockfd, message, strlen(message), 0) != strlen(message) ) {
+                if( send(newSockfd, message2, strlen(message2), 0) != strlen(message2) ) {
                     
                     perror("send failed");
                 }
@@ -326,54 +535,69 @@ void main(int argc, char *argv[])
                 if(index < 0){
                     write(newSockfd,ERROR,strlen(ERROR));
                     close(newSockfd);
-                }else{
-
-                    //write(newSockfd, greeting, strlen(greeting));
-                    for(i=0; i<MAX_CLIENT;i++){ //avisa quem está conectado no canal ativo
-                        if(i!=index && list_c[i].socket_num!=INVALID_SOCK){
-                            constr_func(i, index);     
-                        }
-                    }
                 }
+                /*else{
+                    for(i=0; i<MAX_CLIENT;i++)
+                        if(i!=index && list_c[i].socket_num!=INVALID_SOCK){
+                            constr_func(i, index);
+                        }
+                }*/
             }
         }
+
 
         for(i=0; i<MAX_CLIENT;i++){
             if((list_c[i].socket_num != INVALID_SOCK) && FD_ISSET(list_c[i].socket_num,&rset)){
                 memset(chatData, 0, sizeof(chatData));
                 if((n=read(list_c[i].socket_num,chatData, sizeof (chatData)))>0){
 
-                    // Enviar mensagem de bate-papo padrão
-                    for(j=0; j<MAX_CLIENT;j++){   // send chatting letters
-                        if(list_c[i].socket_num !=INVALID_SOCK)
-                            if(j!=i)
-                                write(list_c[j].socket_num, chatData, sizeof(chatData));
-                    }
-                    
+        
                     if(strstr(chatData, nickname) != NULL){
                         nick_func(chatData, i);
-                        continue;
-                    }
-                    
-                    // Encerrando a conexão [/ quit]
-                    if(!strcmp(chatData, quit)){   // disconnect from the client "i"
-                        quit_func(i);
-                        popClient(list_c[i].socket_num);
+                        list_c[i].first_command = 1; 
                         continue;
                     }
 
-                    // Client Mostrar lista [/ list]
-                    if(!strcmp(chatData,whos)){ //print the list of clients
-                        whos_func(i);
+                    if(list_c[i].first_command != 1){
+                        memset(buf2, 0, sizeof(buf2));
+                        sprintf(buf2,"NICK COMMMAND SHOLUD BE FIRST \n");
+                        write(list_c[j].socket_num,buf2,strlen(buf2));
                         continue;
-                    }
 
-                    // Enviar mensagem 1:1 [/ mensagem [Cliente] [mensagem]]
-                    if(strstr(chatData, message) != NULL){
-                        if(message_func(chatData, i) == 0) continue;
-                        else;
+                    }else{
+                         // Encerrando a conexão [/ quit]
+                        if(!strcmp(chatData, quit)){   // disconnect from the client "i"
+                            quit_func(i);
+                            popClient(list_c[i].socket_num);
+                            continue;
+                        }
+
+                        // Client Mostrar lista [/ list]
+                        if(!strcmp(chatData,whos)){ //print the list of clients
+                            whos_func(i);
+                            continue;
+                        }
+
+                        // Enviar mensagem 1:1 [/ mensagem [Cliente] [mensagem]]
+                        if(strstr(chatData, message) != NULL){
+                            if(message_func(chatData, i) == 3){
+                                continue;
+                            }
+                        }
+
+                        // Gives the user is information
+                        if(!strcmp(chatData,user_info)){
+                            show_client_info(i);
+                            continue;
+                        }
+
+                        if(strstr(chatData, role) != NULL){
+                            give_role(chatData, i);
+                            continue;
+                        }
+
                     }
-                } 
+                }
             }
         }
     }
