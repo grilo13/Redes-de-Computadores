@@ -28,6 +28,7 @@ char kick[]="KICK\n";
 char role[]="ROLE";
 char user_info[]="INFO\n";;
 char exists[]="EXISTS\n";
+char exit_chat[]="EXIT\n";
 
 //CLIENT LIST
 struct List_c{
@@ -131,6 +132,9 @@ void nick_func(char* chatData, int i){
                         if(tamanho > 0){
                             strcpy(old_nick,list_c[i].nick);
                             set_nick(token, i);
+                            puts("RPLY 001 - Nome atribuído com sucesso\n\n");
+                            sprintf(buf1,"RPLY 001 - Nome atribuído com sucesso\n\n");
+                            write(list_c[i].socket_num,buf1,strlen(buf1));
                         
                         }else{
                             set_nick(token, i);
@@ -214,6 +218,20 @@ int see_exists(int i, char* name){
     return id; //retorna o id do utilizador encontrado, se for igual a -1, é porque não encontrou esse utilizador.
 }
 
+// EXIT
+void exit_func(int i){
+    int j;
+    char* token=NULL;
+    char buf1[MAXLINE];
+
+    memset(buf1,0,sizeof(buf1));
+    printf("%s GOODBYE ~ %s\r\n",list_c[i].nick, list_c[i].ip);
+    for(j=0; j<MAX_CLIENT;j++)
+        if(j!=i && list_c[j].socket_num!=INVALID_SOCK){
+            sprintf(buf1,"[%s GOODBYE ~]\r\n",list_c[i].nick);
+            write(list_c[j].socket_num,buf1,strlen(buf1));
+        }
+}
 
 // QUIT
 void quit_func(int i){
@@ -520,7 +538,7 @@ void main(int argc, char *argv[])
 
                 message3 = "BEM-VINDO \n\n DEFINE O TEU NICKNAME PARA COMEÇAR --> NICK <nickname>  \n\n";
 
-                message2 = "\n\n                                   MENU                                         \n\n NICK <nickname> --> ATRIBUI/ALTERA O NICK DO UTILIZADOR \n\n MSSG <texto> --> NECESSÁRIA PARA ENVIAR MENSAGENS AOS OUTROS UTILIZADORES \n\n PASS <password> --> DEFINE UMA PASSWORD PARA NO REGISTO DO UTILIZADOR \n\n JOIN <canal> --> MUDA O CANAL ATIVO PARA <CANAL> (Indisponínel) \n\n LIST --> LISTA OS CANAIS EXISTENTES (Indisponínel) \n\n WHOS --> LISTA E MOSTRA A INFORMAÇÃO DOS UTILIZADORES NO CANAL ATIVO \n\n INFO --> PARA SABERES INFORMAÇÃO ACERCA DA TUA CONTA \n\n KICK <nome> --> SENDO OPERADOR, PARA EXPULAR O UTILIZADOR COM O <nome> \n\n REGS <nome> <password> --> PARA REGISTAR UM UTILIZADOR \n\n OPER <nome> --> PROMOVE O UTILIZADOR À CATEGORIA DE OPERADOR \n\n QUIT --> DESISTE DE SER OPERADOR \n\n";
+                message2 = "\n\n                                   MENU                                         \n\n NICK <nickname> --> ATRIBUI/ALTERA O NICK DO UTILIZADOR \n\n MSSG <texto> --> NECESSÁRIA PARA ENVIAR MENSAGENS AOS OUTROS UTILIZADORES \n\n PASS <password> --> DEFINE UMA PASSWORD PARA NO REGISTO DO UTILIZADOR \n\n JOIN <canal> --> MUDA O CANAL ATIVO PARA <CANAL> (Indisponínel) \n\n LIST --> LISTA OS CANAIS EXISTENTES (Indisponínel) \n\n WHOS --> LISTA E MOSTRA A INFORMAÇÃO DOS UTILIZADORES NO CANAL ATIVO \n\n INFO --> PARA SABERES INFORMAÇÃO ACERCA DA TUA CONTA \n\n KICK <nome> --> SENDO OPERADOR, PARA EXPULAR O UTILIZADOR COM O <nome> \n\n REGS <nome> <password> --> PARA REGISTAR UM UTILIZADOR \n\n OPER <nome> --> PROMOVE O UTILIZADOR À CATEGORIA DE OPERADOR \n\n QUIT --> DESISTE DE SER OPERADOR \n\n EXIT --> PARA O UTILIZADOR SAIR DO CANAL";
 
                 if( send(newSockfd, message2, strlen(message2), 0) != strlen(message2) ) {
                     
@@ -563,10 +581,17 @@ void main(int argc, char *argv[])
 
                     }else{
 
+                        //EXIT
+                        if(!strcmp(chatData,exit_chat)){ 
+                            exit_func(i);
+                            popClient(list_c[i].socket_num);
+                            continue;
+                        }
+
+
                          // QUIT
                         if(!strcmp(chatData, quit)){ 
                             quit_func(i);
-                            popClient(list_c[i].socket_num);
                             continue;
                         }
 

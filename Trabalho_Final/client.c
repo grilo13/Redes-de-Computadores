@@ -20,8 +20,8 @@ char nickname[]="NICK";
 char kick[]="KICK\n";
 char role[]="ROLE";
 char user_info[]="INFO\n";
-char message2[]="MAIN";
 char exists[]="EXISTS\n";
+char exit_chat[]="EXIT\n";
 
 void
 chatting(int sockfd, int maxfdp, fd_set rset, char *argv[])
@@ -74,6 +74,11 @@ chatting(int sockfd, int maxfdp, fd_set rset, char *argv[])
                 {
                     write(sockfd, buf, strlen(buf));
                     continue;
+                }
+                if(!strcmp(buf, exit_chat))
+                {
+                    write(sockfd, buf, strlen(buf));
+                    break;
                 }
                 if(!strcmp(buf, quit))
                 {
