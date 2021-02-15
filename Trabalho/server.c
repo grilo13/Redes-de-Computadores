@@ -30,6 +30,7 @@ char exists[]="EXISTS\n";
 char register1[]="REGS";
 char list_regs[]="LISTR\n";
 char authenticate[]="PASS";
+char admin[]="ADMI";
 
 // Client List
 struct List_c{
@@ -51,6 +52,56 @@ struct Register_c{
 }register_c[MAX_CLIENT];
 
 // Armazenamento de índice de clientes conectados
+
+//Funcao para dar operador a um ADMIN
+void give_admin_role(char* chatData, int i){
+    int j;
+    char* token;
+    char buf1[MAXLINE];
+    int contador = 0;
+    char aux2[20];
+    char* end = " ";
+
+    token=strtok(chatData, end);
+
+    char* aux = "operador";
+    char* aux4 ="autenticado";
+
+    memset(buf1,0,sizeof(buf1));
+
+   if(strcmp(token, role)==0){
+        token = strtok(NULL, end);
+        token[strcspn(token, "\n")] = 0;
+        strcpy(aux2,token);
+   }
+
+   strcpy(list_c[i].role, aux);
+
+    //int id_user = see_exists(i,aux2);
+
+    /*if(id_user == -1){
+        for(j=0; j<MAX_CLIENT;j++)
+            if(j==i && list_c[j].socket_num!=INVALID_SOCK){
+                sprintf(buf1,"RPLY 802 – Erro. Ação não autorizada, utilizador cliente não é um operador %s.\r\n",list_c[id_user].role);
+                write(list_c[j].socket_num,buf1,strlen(buf1));
+            }
+
+    } else {
+        printf("ID USER %d", id_user);
+
+        strcpy(list_c[id_user].role, aux);
+
+        printf("USER %s %s\n", list_c[id_user].nick, list_c[id_user].role);
+        for(j=0; j<MAX_CLIENT;j++)
+            if(j==id_user && list_c[j].socket_num!=INVALID_SOCK){
+                sprintf(buf1,"RPLY 801 – Foi promovido a %s.\r\n",list_c[id_user].role);
+                write(list_c[j].socket_num,buf1,strlen(buf1));
+            } else if(j==i && list_c[j].socket_num!=INVALID_SOCK){
+                sprintf(buf1,"Promoveste a %s o utilizador %s\r\n",list_c[id_user].role, list_c[id_user].nick);
+                write(list_c[j].socket_num,buf1,strlen(buf1));
+            }
+    }*/
+}
 
 int pushClient(int connfd, char* c_ip, int c_port){    
 
@@ -270,8 +321,6 @@ int see_exists(int i, char* name){
         if(list_c[j].socket_num!=INVALID_SOCK){
             if(strcmp(list_c[j].nick,name) == 0){
                 id = j;
-                sprintf(buf1,"ID: %d e Nome utilizador: %s\n", list_c[j].socket_num,list_c[j].nick);
-                write(list_c[i].socket_num,buf1,strlen(buf1));
                 break;
             } else {
                 id = -1;  //não encontra utilizador com o nome pedido
@@ -282,21 +331,6 @@ int see_exists(int i, char* name){
     return id; //retorna o id do utilizador encontrado, se for igual a -1, é porque não encontrou esse utilizador.
 }
 
-
-// QUIT
-/*void quit_func(int i){
-    int j;
-    char* token=NULL;
-    char buf1[MAXLINE];
-
-    memset(buf1,0,sizeof(buf1));
-    printf("%s logged out from the ip %s\r\n",list_c[i].nick, list_c[i].ip);
-    for(j=0; j<MAX_CLIENT;j++)
-        if(j!=i && list_c[j].socket_num!=INVALID_SOCK){
-            sprintf(buf1,"%s Deixou de ser operador.\r\n",list_c[i].nick);
-            write(list_c[j].socket_num,buf1,strlen(buf1));
-        }
-}*/
 // QUIT function
 void quit_func(int i){
     int j;
@@ -343,65 +377,68 @@ void give_role(char* chatData, int i){
     char aux2[20];
     char* end = " ";
 
+    int decisao = 0;
+    int decisao2 = 0;
+
     token=strtok(chatData, end);
 
     char* aux = "operador";
     char* aux4 ="autenticado";
 
-    if(strcmp(list_c[i].role,aux) == 0){
-        printf("Tem permissoes %s", list_c[i].nick);
-    } else {
-        printf("Não Tem permissoes %s", list_c[i].nick);
-    }
+    if(strcmp(list_c[i].role,aux) == 0){  //se cliente for operador
 
+        if(strcmp(register_c[i].auth,aux4) == 0){  //se cliente estiver autenticado
 
-    memset(buf1,0,sizeof(buf1));
-    printf("%s \n", list_c[i].role);
-    printf("%s wants to add a role \r\n",list_c[i].nick);
+            decisao = 1;
 
-    if(strcmp(list_c[i].role,aux) == 0){
-        printf("%s pode dar role operador a outro utilizador.\n", list_c[i].nick);
-    } else {
-        printf("RPLY 802 – Erro. Ação não autorizada, utilizador cliente não é um operador\n");
-    }
+            memset(buf1,0,sizeof(buf1));
 
-    if(strcmp(register_c[i].auth,aux4) == 0){
-        printf("Não está autenticado.\n");
-    } else {
-        printf("Não está autenticado.\n");
-    }
-
-
-   if(strcmp(token, role)==0){
-        token = strtok(NULL, end);
-        token[strcspn(token, "\n")] = 0;
-        strcpy(aux2,token);
-   }
-
-
-    int id_user = see_exists(i,aux2);
-
-    if(id_user == -1){
-        for(j=0; j<MAX_CLIENT;j++)
-            if(j==i && list_c[j].socket_num!=INVALID_SOCK){
-                sprintf(buf1,"RPLY 802 – Erro. Ação não autorizada, utilizador cliente não é um operador %s.\r\n",list_c[id_user].role);
-                write(list_c[j].socket_num,buf1,strlen(buf1));
+            if(strcmp(token, role)==0){
+                    token = strtok(NULL, end);
+                    token[strcspn(token, "\n")] = 0;
+                    strcpy(aux2,token);
             }
 
-    } else {
-        printf("ID USER %d", id_user);
+            int id_user = see_exists(i,aux2);
 
-        strcpy(list_c[id_user].role, aux);
+            if(id_user == -1){
+                sprintf(buf1,"Utilizador pretendido não existe.\n");
+                write(list_c[i].socket_num,buf1,strlen(buf1));
+            } else {
 
-        printf("USER %s %s\n", list_c[id_user].nick, list_c[id_user].role);
-        for(j=0; j<MAX_CLIENT;j++)
-            if(j==id_user && list_c[j].socket_num!=INVALID_SOCK){
-                sprintf(buf1,"RPLY 801 – Foi promovido a %s.\r\n",list_c[id_user].role);
-                write(list_c[j].socket_num,buf1,strlen(buf1));
-            } else if(j==i && list_c[j].socket_num!=INVALID_SOCK){
-                sprintf(buf1,"Promoveste a %s o utilizador %s\r\n",list_c[id_user].role, list_c[id_user].nick);
-                write(list_c[j].socket_num,buf1,strlen(buf1));
+                if(strcmp(register_c[id_user].nick, aux2) == 0){   //ver se o utilizador está na lista de clientes registados
+                    strcpy(list_c[id_user].role, aux);
+                    puts("RPLY 801 – Utilizador pretendido foi promovido a operador.\n");
+                    sprintf(buf1,"RPLY 801 – Utilizador pretendido foi promovido a operador.\n");
+                    write(list_c[i].socket_num,buf1,strlen(buf1));
+
+                    for(j=0; j<MAX_CLIENT;j++){
+                         if(j!=i && list_c[j].socket_num!=INVALID_SOCK){
+                             
+                             sprintf(buf1,"MSSG server :> <%s>  foi promovido a operador\n", aux2);
+                             write(list_c[j].socket_num,buf1,strlen(buf1));
+                         } 
+                    }
+                } else {
+                    puts("RPLY 804 – Erro. Ação não autorizada, utilizador <%s> não é um utilizador registado.\n");
+                    sprintf(buf1,"RPLY 804 – Erro. Ação não autorizada, utilizador <%s> não é um utilizador registado.\n", aux2);
+                    write(list_c[i].socket_num,buf1,strlen(buf1));
+                }
+
             }
+
+        } else {
+            puts("RPLY 803 – Erro. Ação não autorizada, utilizador cliente não está autenticado.\n");
+            sprintf(buf1,"RPLY 803 – Erro. Ação não autorizada, utilizador cliente não está autenticado.\n");
+            write(list_c[i].socket_num,buf1,strlen(buf1));
+        }
+
+
+    } else {
+        decisao = 2;
+        puts("RPLY 802 – Erro. Ação não autorizada, utilizador cliente não é um operador.\n");
+        sprintf(buf1,"RPLY 802 – Erro. Ação não autorizada, utilizador cliente não é um operador.\n");
+        write(list_c[i].socket_num,buf1,strlen(buf1));
     }
 }
 
@@ -431,20 +468,15 @@ void list_registered(int i){
     memset(buf1,0,sizeof(buf1));
 
     for(j=0; j<MAX_CLIENT;j++){
-        printf("\nUSERNAME REGISTER -> %s", register_c[j].nick);
         int tamanho = strlen(register_c[j].nick);
-        printf("\nUSERNAME tamanho -> %d", tamanho);
         if(tamanho > 0){
             cnt++;
-            printf("\nCONTADOR = %d" ,cnt);
-            sprintf(buf1,"[Utilizador registado : %s, %s, %s]\r\n",register_c[j].nick, register_c[j].password, register_c[i].auth);
+            sprintf(buf1,"[Utilizador registado : %s, %s, %s]\n",register_c[j].nick, register_c[j].password, register_c[i].auth);
             write(list_c[i].socket_num,buf1,strlen(buf1));
-        } else {
-            printf("\nNão existe\n");
-        } 
+        }
     }
 
-    sprintf(buf1,"[Nº de utilizadores registados : %d]\r\n",cnt);
+    sprintf(buf1,"[Nº de utilizadores registados : %d]\n",cnt);
     write(list_c[i].socket_num,buf1,strlen(buf1));        
 }
 
@@ -460,16 +492,19 @@ void user_register(char* chatData, int i){
 
     int decisao1 = 0;
 
+    int auxiliar = 0;
+
     char* end = " ";
 
     token=strtok(chatData, end);
 
     char* aux = "operador";
+    char* autenticacao = "não_autenticado";
     //strcpy(aux,"OPERADOR");
 
     memset(buf1,0,sizeof(buf1));
 
-    if(strcmp(list_c[i].role,aux) == 0){
+    if(strcmp(list_c[i].role,aux) == 0){  //se utilizador for operador
 
         if(strcmp(token, register1) ==0){
             token = strtok(NULL, end);
@@ -480,8 +515,10 @@ void user_register(char* chatData, int i){
         }
 
         for(j=0; j<MAX_CLIENT;j++){
-            if(strcmp(list_c[i].nick,aux2) == 0){
-                give_password(i,aux3);
+            if(strcmp(list_c[j].nick,aux2) == 0){
+                give_password(j,aux3);
+                strcpy(register_c[j].auth, autenticacao);
+                auxiliar = j;
                 decisao1 = 2;
                 break;
             } else {
@@ -490,13 +527,13 @@ void user_register(char* chatData, int i){
         }
 
         if(decisao1 == 1){
-            sprintf(buf1,"Erro. Ação não autorizada, nickname mal introduzido.\n");
+            sprintf(buf1,"Erro. Ação não autorizada, nickname mal introduzido (ou não existe na lista de registados).\n");
             write(list_c[i].socket_num,buf1,strlen(buf1));
-            printf("Erro. Ação não autorizada, nickname mal introduzido.\n");
+            puts("Erro. Ação não autorizada, nickname mal introduzido (ou não existe na lista de registados).\n");
         } else if(decisao1 == 2){
             for(j=0; j<MAX_CLIENT;j++){
                 if(j!=i && list_c[j].socket_num!=INVALID_SOCK){
-                    sprintf(buf1,"MSSG server :> <%s> foi registado", list_c[i].nick);
+                    sprintf(buf1,"MSSG server :> <%s> foi registado.\n", list_c[auxiliar].nick);
                     write(list_c[j].socket_num,buf1,strlen(buf1));
                 }
             }
@@ -505,97 +542,9 @@ void user_register(char* chatData, int i){
     } else {
         sprintf(buf1,"RPLY 702 – Erro. Ação não autorizada, utilizador cliente não é um operador.\n");
         write(list_c[i].socket_num,buf1,strlen(buf1));
-        printf("RPLY 702 – Erro. Ação não autorizada, utilizador cliente não é um operador.\n");
+        puts("RPLY 702 – Erro. Ação não autorizada, utilizador cliente não é um operador.\n");
     }
-
-
-    /*while( token != NULL ) {
-      contador++;
-      if(contador == 3){
-          printf("\nPassword -> %s", token);
-          strcpy(pass,token);
-
-
-      } else if(contador == 4){
-          printf("\nUsername -> %s", token);
-          strcpy(aux2,token);
-
-      }
-
-      else if(contador > 3){
-          printf("Comando não aceite. Insira outro comando %s", list_c[i].nick);
-      }
-    
-      token = strtok(NULL, " ");
-
-    }*/
-
-    //int password = give_password(i,pass);
-
-    //int id_user = see_exists(i,aux2);
-
-    //printf("\nID USER -> %d", id_user);
-
-    /*if(id_user == -1){
-        for(j=0; j<MAX_CLIENT;j++)
-            if(j==i && list_c[j].socket_num!=INVALID_SOCK){
-                sprintf(buf1,"RPLY 802 – Erro. Ação não autorizada, utilizador cliente não é um operador %s.\r\n",list_c[id_user].role);
-                write(list_c[j].socket_num,buf1,strlen(buf1));
-            }
-
-    }*/ //else { 
-        /*printf("ID USER %d", id_user);
-
-        strcpy(list_c[id_user].role, aux);
-
-        printf("USER %s %s\n", list_c[id_user].username, list_c[id_user].role);
-        for(j=0; j<MAX_CLIENT;j++)
-            if(j==id_user && list_c[j].socket_num!=INVALID_SOCK){
-                sprintf(buf1,"RPLY 801 – Foi promovido a %s.\r\n",list_c[id_user].role);
-                write(list_c[j].socket_num,buf1,strlen(buf1));
-            } else if(j==i && list_c[j].socket_num!=INVALID_SOCK){
-                sprintf(buf1,"Promoveste a %s o utilizador %s\r\n",list_c[id_user].role, list_c[id_user].username);
-                write(list_c[j].socket_num,buf1,strlen(buf1));
-            }*/
-    //}
 }
-
-//Remove register user
-/*void remove_register(int i,char *user){
-    int j;
-    char buf1[MAXLINE];
-
-    char* aux="";
-    char* role="operador";
-
-    int cnt;
-
-    int id = 0;
-
-    memset(buf1,0,sizeof(buf1));
-
-    printf("\nUsername wanted to remove -> %s", user);
-
-        for(j=0; j<MAX_CLIENT;j++){
-            printf("\n%s", register_c[j].nick);
-            printf("\n%s", user);
-
-            if(strcmp(register_c[j].nick,user) == 0){
-                printf("\n Iguais %s" ,register_c[j].nick);
-                strcpy(register_c[j].nick,aux);
-                strcpy(register_c[j].password,aux);
-                printf("\n Iguais %s" ,register_c[j].nick);
-                printf("\n Iguais %s" ,register_c[j].password);
-
-                sprintf(buf1," \nRPLY 601 – Utilizador expulso.");
-                write(list_c[i].socket_num,buf1,strlen(buf1));
-
-                //dar user role ainda
-            } else {
-                printf("Utilizador nao existe");
-            }
-        }
-}*/
 
 //KICK from register list
 void kick_user(char* chatData, int i){
@@ -621,8 +570,6 @@ void kick_user(char* chatData, int i){
             token[strcspn(token, "\n")] = 0;
             strcpy(aux2,token);
         }
-
-        printf("\nNICK -> %s ",aux2);
 
         remove_register(i, aux2);
 
@@ -662,6 +609,7 @@ void remove_register(int i,char* user){
 
                 sprintf(buf1,"RPLY 601 – Utilizador expulso.\n");
                 write(list_c[i].socket_num,buf1,strlen(buf1));
+                decisao = 2;
                 break;
 
                 //dar user role ainda
@@ -681,44 +629,6 @@ void remove_register(int i,char* user){
     }
 }
 
-//Kick user from register list
-/*void kick_user(char* chatData, int i){
-    int j;
-    char* token;
-    char buf1[MAXLINE];
-    int contador = 0;
-    char* aux2[20];
-    char* user[20];
-
-    char* end = " ";
-
-    token=strtok(chatData, end);
-
-    char* aux = "operador";
-    //strcpy(aux,"OPERADOR");
-
-    memset(buf1,0,sizeof(buf1));
-    printf("%s\n", list_c[i].role);
-    printf("%s wants to add a role\r\n",list_c[i].nick);
-
-    if(strcmp(list_c[i].role,aux) == 0){
-        printf("%s pode dar role operador a outro utilizador.\n", list_c[i].nick);
-    } else {
-        printf("%s não tem permissões para tal.\n", list_c[i].nick);
-    }
-
-
-    if(strcmp(token, kick) ==0){
-            token = strtok(NULL, end);
-            token[strcspn(token, "\n")] = 0;
-            strcpy(aux2,token);
-    }
-
-    remove_register(i,aux2);
-
-}*/
-
-
 // WHOS
 void whos_func(int i){
     int j,cnt=0;
@@ -729,72 +639,17 @@ void whos_func(int i){
     for(j=0; j<MAX_CLIENT;j++)
         if(list_c[j].socket_num!=INVALID_SOCK)
             cnt++;
-    sprintf(buf1,"[Visitantes atuais do canal : %d]\r\n",cnt);
+    sprintf(buf1,"[Visitantes atuais do canal : %d]\n",cnt);
     write(list_c[i].socket_num,buf1,strlen(buf1));
 
     for(j=0; j<MAX_CLIENT;j++){
         if(list_c[j].socket_num!=INVALID_SOCK){
-            sprintf(buf1,"[%s from %s: %d]\r\n",list_c[j].nick,list_c[j].ip,list_c[j].port);
+            sprintf(buf1,"[%s from %s: %d]\n",list_c[j].nick,list_c[j].ip,list_c[j].port);
             write(list_c[i].socket_num,buf1,strlen(buf1));
         }
     }   
 }
-/*
-// message
-int message_func(char* chatData,int i){
-    int message_sock;
-    char* token;
-    char buf1[MAXLINE];
-    char* end = " ";
-    int aux;
-    memset(buf1,0,sizeof(buf1));
-    
-    token = strtok(chatData, end);
-    if(strcmp(token, message)==0){
-      token = strtok(NULL, end);
-      token[strcspn(token, "\n")] = 0; //remover \n 
-        if(strlen(token) == 0){
-            if(list_c[j].socket_num!=INVALID_SOCK){
-                puts("RPLY 102 - Erro. Não há texto na mensagem.\n");
-                sprintf(buf1,"RPLY 102 - Erro. Não há texto na mensagem.\n");
-                write(list_c[i].socket_num,buf1,strlen(buf1));
-                aux = 1;
-                return aux;
-            }
-        }else{
-            for(int j=0;j<MAX_CLIENT;j++){
-                if(list_c[j].socket_num!=INVALID_SOCK && j==i){
-                    if(strlen(token) > CHATDATA){
-                        puts("RPLY 103 - Erro. Mensagem demasiado longa.\n");
-                        sprintf(buf1,"RPLY 103 - Erro. Mensagem demasiado longa.\n");
-                        write(list_c[j].socket_num,buf1,strlen(buf1));
-                        aux = 2;
-                        return aux;
-                        break;
-                    }else{
-                        puts("RPLY 101 - mensagem enviada com sucesso.\n");
-                        sprintf(buf1,"RPLY 101 - mensagem enviada com sucesso. \n");
-                        write(list_c[j].socket_num,buf1,strlen(buf1));
-                        aux = 3;
-                        return aux;
-                        break;
-                    }
-                }
-            }   
-        }
-    }else{
-        for(int j=0;j<MAX_CLIENT;j++){
-            if(list_c[j].socket_num!=INVALID_SOCK && j==i){
-                puts("RPLY 102 - Erro. Não há texto na mensagem.\n"); 
-                sprintf(buf1,"RPLY 102 - Erro. Não há texto na mensagem.\n");
-                write(list_c[i].socket_num,buf1,strlen(buf1));
-                aux = 1;
-                return aux;
-            }
-        }
-    }
-}
-*/
+
 
 void main(int argc, char *argv[])
 {
@@ -812,6 +667,15 @@ void main(int argc, char *argv[])
     char buf1[MAXLINE];
     char buf2[MAXLINE];
     char chatData[CHATDATA];
+
+    /*char* aux = "operador";
+    char* aux1 = "ADMIN";
+
+    strcpy(list_c[9].role,aux);
+    strcpy(list_c[9].nick,aux1);
+
+    strcpy(register_c[9].role,aux);
+    strcpy(register_c[9].nick, aux1);*/
 
     // ./server [port_number] Envia mensagem se nenhum argumento for fornecido
     if(argc<2){
@@ -985,6 +849,11 @@ void main(int argc, char *argv[])
 
                         if(strstr(chatData, role) != NULL){
                             give_role(chatData, i);
+                            continue;
+                        }
+                        //admin operator
+                        if(strstr(chatData, admin) != NULL){
+                            give_admin_role(chatData, i);
                             continue;
                         }
 

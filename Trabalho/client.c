@@ -25,6 +25,7 @@ char kick[]="KICK";
 char register1[]="REGS";
 char list_register[]="LISTR\n";
 char authenticate[]="PASS";
+char admin[]="ADMI";
 
 void
 chatting(int sockfd, int maxfdp, fd_set rset, char *argv[])
@@ -126,6 +127,11 @@ chatting(int sockfd, int maxfdp, fd_set rset, char *argv[])
                     continue;
                 }
                 if(strstr(buf,role))
+                {
+                    write(sockfd, buf, strlen(buf));
+                    continue;
+                }
+                if(strstr(buf,admin))
                 {
                     write(sockfd, buf, strlen(buf));
                     continue;
